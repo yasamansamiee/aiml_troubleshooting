@@ -6,7 +6,8 @@
 Welcome to kuberspatiotemporal
 ==============================
 
-A package to experiment with probabilistic, heterogeneous mixture models for risk analysis.
+A package to experiment with probabilistic,
+heterogeneous mixture models for risk analysis.
 
 
 .. toctree::
@@ -15,7 +16,6 @@ A package to experiment with probabilistic, heterogeneous mixture models for ris
 
 
    api/modules
-   
 
 
 
