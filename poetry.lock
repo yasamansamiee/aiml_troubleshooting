@@ -42,7 +42,7 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 version = "1.3.0"
 
 [[package]]
-category = "dev"
+category = "main"
 description = "Classes Without Boilerplate"
 name = "attrs"
 optional = false
@@ -433,6 +433,14 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 version = "2.5.0"
 
 [[package]]
+category = "dev"
+description = "Python bindings for the Enchant spellchecking system"
+name = "pyenchant"
+optional = false
+python-versions = ">=3.5"
+version = "3.0.1"
+
+[[package]]
 category = "main"
 description = "Pygments is a syntax highlighting package written in Python."
 name = "pygments"
@@ -774,7 +782,7 @@ docs = ["sphinx", "jaraco.packaging (>=3.2)", "rst.linker (>=1.9)"]
 testing = ["jaraco.itertools", "func-timeout"]
 
 [metadata]
-content-hash = "d78cf6e26ceac59d8b1a021f427d6db2992cf6b9b35623550642cfdb57cac53f"
+content-hash = "8323a45e557099552c4c8714a12cbdb52222f812477a5f53b0dbce3d73909006"
 python-versions = "^3.7"
 
 [metadata.files]
@@ -996,6 +1004,12 @@ py = [
 pycodestyle = [
     {file = "pycodestyle-2.5.0-py2.py3-none-any.whl", hash = "sha256:95a2219d12372f05704562a14ec30bc76b05a5b297b21a5dfe3f6fac3491ae56"},
     {file = "pycodestyle-2.5.0.tar.gz", hash = "sha256:e40a936c9a450ad81df37f549d676d127b1b66000a6c500caa2b085bc0ca976c"},
+]
+pyenchant = [
+    {file = "pyenchant-3.0.1-py3-none-any.whl", hash = "sha256:43032310df4a29f08a5ce5b65f2aeb0ec1bca5ef08bcf3156423d50e0e1d7d0c"},
+    {file = "pyenchant-3.0.1-py3-none-win32.whl", hash = "sha256:8b4ef051ef75fa7695c5259c34fb51bc54aa76a39c04db4d4fda997a5e94792a"},
+    {file = "pyenchant-3.0.1-py3-none-win_amd64.whl", hash = "sha256:9fb8edbaa211e8594b4c3d26bbda8e78d6d5e260df50e6c9600be171aa83d575"},
+    {file = "pyenchant-3.0.1.tar.gz", hash = "sha256:1bd26a644abf80196a9de3f2d820ebafb7e7f78385e392ce77cb1552f164d559"},
 ]
 pygments = [
     {file = "Pygments-2.6.1-py2.py3-none-any.whl", hash = "sha256:aa931c0bd5daa25c475afadb2147115134cfe501f0656828cbe7cb566c7123bc"},
