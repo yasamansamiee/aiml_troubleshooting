@@ -1,0 +1,50 @@
+{
+    "meta": {
+        "prefix": "meta",
+        "body": [
+            "# -*- coding: utf-8 -*-",
+            "r\"\"\"",
+            "${9:brief description}.",
+            "\"\"\"",
+            "",
+            "__author__ = \"$1 $2\"",
+            "__copyright__ = \"Copyright 2018-2019, Acceptto Corporation, All rights reserved.\"",
+            "__credits__ = [$3]",
+            "__license__ = \"Acceptto Confidential\"",
+            "__version__ = \"$4\"",
+            "__maintainer__ = \"$1 $2\"",
+            "__email__ = \"$1.$2@acceptto.com\"",
+            "__status__ = \"${5|alpha,beta,production|}\"",
+            "__date__ = \"${6:$CURRENT_YEAR}-${7:$CURRENT_MONTH}-${8:$CURRENT_DATE}\"$0"
+        ],
+        "description": "Create standard meta data"
+    },
+    "docstring": {
+        "prefix": "docstring",
+        "body": [
+            "r\"\"\"",
+            "${1:brief description}.",
+            "",
+            "Parameters",
+            "----------",
+            "${2:parameter}: ${3:type or shape (m, n}",
+            "    ${4:what its for}.",
+            "",
+            "Returns",
+            "-------",
+            "${5:value} : ${6:type or shape (m, n}",
+            "    ${7:what its for}.",
+            "",
+            "Notes",
+            "-----",
+            "Example",
+            "-------",
+            "${8:How to use:}",
+            "",
+            ">>> temp = Test()",
+            "\"\"\""
+        ],
+        "description": "Create a scipy conform docstring"
+
+    }
+}

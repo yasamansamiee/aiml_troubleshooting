@@ -1,0 +1,31 @@
+[tool.poetry]
+name = "kuberspatiotemporal"
+version = "0.1.0"
+description = "A package to experiment with probabilistic, heterogeneous mixture models for risk analysis."
+authors = ["Stefan <stefan.ulbrich@acceptto.com>"]
+readme = "README.md"
+# repository = "git@github.com:acceptto-corp/kuberspatiotemporal.git"
+classifiers = [
+   "Private :: Do Not Upload", # https://github.com/sdispater/poetry/issues/302#issuecomment-467805206
+]
+packages = [
+   { include = "kuberspatiotemporal", from = "src"}
+]
+
+
+[tool.poetry.dependencies]
+python = "^3.7"
+scikit-learn = "^0.22.2"
+numpy = "^1.18.1"
+sphinx = "^2.4.4"
+
+[tool.poetry.dev-dependencies]
+ipykernel = "^5.1.4"
+pylint = "^2.4.4"
+autopep8 = "^1.5"
+rope = "^0.16.0"
+pytest = "^5.3.5"
+
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"
