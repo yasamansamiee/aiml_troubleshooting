@@ -8,7 +8,7 @@
             "\"\"\"",
             "",
             "__author__ = \"$1 $2\"",
-            "__copyright__ = \"Copyright 2018-2019, Acceptto Corporation, All rights reserved.\"",
+            "__copyright__ = \"Copyright 2018-2020, Acceptto Corporation, All rights reserved.\"",
             "__credits__ = [$3]",
             "__license__ = \"Acceptto Confidential\"",
             "__version__ = \"$4\"",
