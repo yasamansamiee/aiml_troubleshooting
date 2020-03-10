@@ -16,6 +16,8 @@ Based on `(Kimura et al. 2011)`_ by DeepMind's `Arnaud Doucet`_ and
    :maxdepth: 2
    :caption: Contents:
 
+   math_fundamentals
+   classical_batch
    discussion
    api/modules
 
