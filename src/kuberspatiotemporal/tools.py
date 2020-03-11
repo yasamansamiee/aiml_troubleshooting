@@ -11,6 +11,7 @@ __email__ = "Stefan.Ulbrich@acceptto.com"
 __date__ = "2020-03-09"
 
 import logging
+import sys
 from typing import Tuple
 
 from scipy.stats import multivariate_normal, multinomial
@@ -107,6 +108,24 @@ def make_gmm(n_samples=100, n_features=2,
 
     return X, y
 
+def check_singular(x, tol = 1/sys.float_info.epsilon):
+    is_singular =  np.linalg.cond(x) > tol
+    if is_singular:
+        logger.warning("Found singular matrix:\n%s\ncond: %f>%f",
+                       x, np.linalg.cond(x), tol)
+    return is_singular
+
+def check_spd(x, rtol=1e-05, atol=1e-08):
+    """ Based on https://stackoverflow.com/a/42913743 and https://stackoverflow.com/a/16270026."""
+    all_ev_positive = np.all(np.linalg.eigvals(x) > 0)
+    is_symmetric = np.allclose(x, x.T, rtol=rtol, atol=atol)
+    if not all_ev_positive or not is_symmetric:
+        logger.warning("Matrix not SPD:\n%s",x)
+        logger.warning("Positive definit %s", all_ev_positive) 
+        logger.warning("symmetric: %s", is_symmetric)
+        logger.warning("EV %s", np.linalg.eigvals(x))
+    return all_ev_positive and is_symmetric
+
 
 def make_ellipses(gmm: 'GaussianMixtureModel', ax):
     """Shamelessly stolen from
@@ -117,16 +136,17 @@ def make_ellipses(gmm: 'GaussianMixtureModel', ax):
     if not MPL_AVAILABLE:
         raise NotImplementedError("Matplotlib not available")
 
-    colors = ['navy', 'turquoise', 'darkorange', 'firebrick',
-              'yellowgreen', 'mediumorchid', 'slateblue',
-              'darkcyan', 'gold', 'mediumpurple', 'navajowhite']
+    colors = ['navy', 'turquoise', 'darkorange','firebrick',
+              'yellowgreen', 'mediumorchid','slateblue',
+              'darkcyan','gold','mediumpurple','navajowhite']
 
     for n, color in enumerate(colors):
-
-        if n == gmm.n_components:
+        
+        if n==gmm.n_components:
             break
-
+        
         covariances = gmm.covs[n]
+        
 
         v, w = np.linalg.eigh(covariances)
         u = w[0] / np.linalg.norm(w[0])
@@ -140,13 +160,6 @@ def make_ellipses(gmm: 'GaussianMixtureModel', ax):
         ax.add_artist(ell)
         ax.set_aspect('equal', 'datalim')
 
-
-def check_spd(x, rtol=1e-05, atol=1e-08):
-    """ Based on https://stackoverflow.com/a/42913743 and https://stackoverflow.com/a/16270026."""
-    all_ev_positive = np.all(np.linalg.eigvals(x) > 0)
-    is_symmetric = np.allclose(x, x.T, rtol=rtol, atol=atol)
-    logger.debug("Positive definit %s", all_ev_positive)
-    if not all_ev_positive:
-        logger.debug("EV %s", np.linalg.eigvals(x))
-    logger.debug("symmetric: %s", is_symmetric)
-    return all_ev_positive and is_symmetric
+        
+def repr_list_ndarray(x: np.ndarray) -> str:
+    return f"`list of length {len(x)}, elements of shape {np.asarray(x).shape[1:]}`"
