@@ -29,37 +29,10 @@ logger = logging.getLogger(__name__)
 
 # Code from pyloa
 
-
 def make_gmm(n_samples=100, n_features=2,
              n_clusters=3, center_std=10,
-             cluster_std=.001, weights=None) -> Tuple[np.ndarray, np.ndarray]:
-    r"""Draw samples of an random Gaussian Mixture Model. Unlike make_blobs,
-    covariance matrices are created randomly too.
-    Parameters
-    ----------
-    n_samples : int or array-like, optional (default=100)
-        If int, it is the total number of points equally divided among
-        clusters.
-        If array-like, each element of the sequence indicates
-        the number of samples per cluster.
-    n_features : int, optional (default=2)
-        The number of features for each sample.
-    n_clusters: int
-        Number of clusters.
-    center_std: float
-        Represents the standard deviation of the
-        normal distributions the centers are drawn from
-    cluster_std : float
-        Standard deviation of a scale factor for the covariance matrices.
-    weights: array-like
-        Weights of the GMM. Must have the n_samples elements.
-    Returns
-    -------
-    X : array of shape [n_samples, n_features]
-        The generated samples.
-    y : array of shape [n_samples]
-        The integer labels for cluster membership of each sample.
-    """
+             cluster_std=.005, n_symbols=5, weights=None) -> Tuple[np.ndarray, np.ndarray]:
+
     # pylint: disable=C0103
 
     if weights is None:
@@ -75,15 +48,27 @@ def make_gmm(n_samples=100, n_features=2,
         )
         for i in range(n_clusters)
     ]
+    
+    P = np.random.dirichlet([1]*n_symbols,n_clusters)
+    mn = [
+        multinomial(n=1,p=p)
+        for p in P
+    ]
 
     # Draw n_samples picks from each of the n_clusters distributions.
     # We will have to discard most of them later (not too efficient)
-    rvs = np.array([mvn[i].rvs(size=n_samples) for i in range(n_clusters)])
-
+    rvs_x = np.array([mvn[i].rvs(size=n_samples) for i in range(n_clusters)])
+    
+    # https://stackoverflow.com/a/42497456
+    rvs_s = np.array( [[np.where(r==1)[0][0] for r in i.rvs(size=n_samples)] for i in mn ])
+    
     # Damn dimensions never fit. We swap the first two axes afterwards
 
     # n_samples x n_clusters x n_features
-    rvs = np.swapaxes(rvs, 0, 1)
+    rvs_x = np.swapaxes(rvs_x, 0, 1)
+    rvs_s = rvs_s.T
+    
+
 
     # Pick samples of the categorical distribution (i.e., multinomial with only 1 draw)
 
@@ -97,7 +82,9 @@ def make_gmm(n_samples=100, n_features=2,
     # pylint: disable=comparison-with-callable
     # TODO same pylint bug? Check later https://github.com/PyCQA/pylint/issues/2306
     # n_samples x n_features
-    X = rvs[idx != 0]
+    X = rvs_x[idx != 0]
+    
+    S = rvs_s[idx != 0] # pylint: disable=unsubscriptable-object
 
     # From idx, we can get the class labels with a little trick and help from broadcasting
     y = np.sum(np.array([np.arange(n_clusters)]) * idx, 1)
@@ -106,10 +93,10 @@ def make_gmm(n_samples=100, n_features=2,
     unique, counts = np.unique(y, return_counts=True)
     print(dict(zip(unique, counts)))
 
-    return X, y
+    return X,S, y, P
 
-def check_singular(x, tol = 1/sys.float_info.epsilon):
-    is_singular =  np.linalg.cond(x) > tol
+def check_singular(x, tol=1/sys.float_info.epsilon):
+    is_singular = np.linalg.cond(x) > tol
     if is_singular:
         logger.warning("Found singular matrix:\n%s\ncond: %f>%f",
                        x, np.linalg.cond(x), tol)
@@ -120,14 +107,14 @@ def check_spd(x, rtol=1e-05, atol=1e-08):
     all_ev_positive = np.all(np.linalg.eigvals(x) > 0)
     is_symmetric = np.allclose(x, x.T, rtol=rtol, atol=atol)
     if not all_ev_positive or not is_symmetric:
-        logger.warning("Matrix not SPD:\n%s",x)
-        logger.warning("Positive definit %s", all_ev_positive) 
+        logger.warning("Matrix not SPD:\n%s", x)
+        logger.warning("Positive definit %s", all_ev_positive)
         logger.warning("symmetric: %s", is_symmetric)
         logger.warning("EV %s", np.linalg.eigvals(x))
     return all_ev_positive and is_symmetric
 
 
-def make_ellipses(gmm: 'GaussianMixtureModel', ax):
+def make_ellipses(gmm: 'GaussianMixtureModel', ax, min_weight=.0):
     """Shamelessly stolen from
     https://scikit-learn.org/stable/auto_examples/mixture/plot_gmm_covariances.html"""
 
@@ -136,17 +123,18 @@ def make_ellipses(gmm: 'GaussianMixtureModel', ax):
     if not MPL_AVAILABLE:
         raise NotImplementedError("Matplotlib not available")
 
-    colors = ['navy', 'turquoise', 'darkorange','firebrick',
-              'yellowgreen', 'mediumorchid','slateblue',
-              'darkcyan','gold','mediumpurple','navajowhite']
+    colors = ['navy', 'turquoise', 'darkorange', 'firebrick',
+              'yellowgreen', 'mediumorchid', 'slateblue',
+              'darkcyan', 'gold', 'mediumpurple', 'navajowhite']*30
 
     for n, color in enumerate(colors):
-        
-        if n==gmm.n_components:
+
+        if n == gmm.n_components:
             break
-        
+
+        if gmm.weights[n] < min_weight:
+            continue
         covariances = gmm.covs[n]
-        
 
         v, w = np.linalg.eigh(covariances)
         u = w[0] / np.linalg.norm(w[0])
@@ -160,6 +148,32 @@ def make_ellipses(gmm: 'GaussianMixtureModel', ax):
         ax.add_artist(ell)
         ax.set_aspect('equal', 'datalim')
 
-        
 def repr_list_ndarray(x: np.ndarray) -> str:
     return f"`list of length {len(x)}, elements of shape {np.asarray(x).shape[1:]}`"
+
+def repr_ndarray(x: np.ndarray) -> str:
+    return f"Array {x.shape}" if x is not None else "None"
+
+
+def cholesky_precisions(x: np.ndarray) -> Tuple[np.ndarray,np.ndarray]:
+    n_components, n_features, _ = x.shape
+    
+    precisions_chol = np.empty((n_components, n_features, n_features))
+    for k, covariance in enumerate(x):
+        try:
+            cov_chol = scipy_linalg.cholesky(covariance, lower=True)
+            # cov_chol2 = np.linalg.cholesky(covariance)
+            # assert np.allclose(cov_chol,cov_chol2)
+        except scipy_linalg.LinAlgError:
+            raise ValueError("Could not invert")
+        precisions_chol[k] = scipy_linalg.solve_triangular(cov_chol,
+                                                     np.eye(n_features),
+                                                     lower=True).T # cannot be vectorized :(
+        
+        
+    
+    n_components, _, _ = precisions_chol.shape
+    log_det_chol = (np.sum(np.log(
+        precisions_chol.reshape(
+            n_components, -1)[:, ::n_features + 1]), 1))
+    return precisions_chol, log_det_chol
