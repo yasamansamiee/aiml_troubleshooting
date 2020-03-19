@@ -102,7 +102,7 @@ html_theme = 'alabaster'
 # html_theme = 'sphinx_rtd_theme'
 html_favicon = "_static/favicon.ico"
 
-html_logo ="_static/acceptto.png"
+html_logo ="_static/acceptto-gray.png"
 
 
 # Add any paths that contain custom static files (such as style sheets) here,
