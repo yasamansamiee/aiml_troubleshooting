@@ -14,10 +14,9 @@ __status__ = "alpha"
 __date__ = "2020-03-18"
 
 
-
-import time
 from typing import Optional, Tuple
 import logging
+
 # from sklearn.datasets import make_spd_matrix
 import numpy as np
 import attr
@@ -27,54 +26,70 @@ from .base import BaseModel
 
 logger = logging.getLogger(__name__)
 
-
-# FIXME find_degenerate and reset(_component) will not work currently
-
-
-# Always useful: https://stackoverflow.com/a/44401529
-logging.basicConfig(format='[%(funcName)s:%(lineno)d] %(message)s')
-logger = logging.getLogger(__name__)
-
 @attr.s
 class SpatialModel(BaseModel):
+    """
+    Learning Dirichlet process mixture models for spatial data.
+
+    This class implemets nonparametric Gaussian mixture models and
+    is not limited to 2D data (i.e., not limited to geospatial data.
+
+    Parameters
+    ----------
+    BaseModel : [type]
+        [description]
+
+    n_dim : int
+        The number of dimensions of the feature space, by default 2
+    limits : Optional[Tuple[np.ndarray, np.ndarray]]
+        If specified, used to define the lower and upper bounds for
+        the random intializations, by default `None`
+    min_eigval : float
+        Important value. Minimum extend a cluster/component is allowed
+        to have in one of its main directions. Prevents degenerated
+        components. Read the documentation for details, defaults to
+        `1e-2`.
+    """
+
     # public attributes
     n_dim: int = attr.ib(default=2)
-    start_maximimization: int = attr.ib(default=5)
-    limits: Tuple[np.ndarray, np.ndarray] = attr.ib(default=None)  # should have a validator
+    limits: Optional[Tuple[np.ndarray, np.ndarray]] = attr.ib(
+        default=None
+    )  # should have a validator
     min_eigval: float = attr.ib(default=1e-2)
 
     # Internal state variables
-    means: Optional[np.ndarray] = attr.ib(default=None, repr=repr_ndarray)
-    covs: Optional[np.ndarray] = attr.ib(default=None, repr=repr_ndarray)
+    __means: Optional[np.ndarray] = attr.ib(default=None, repr=repr_ndarray)
+    __covs: Optional[np.ndarray] = attr.ib(default=None, repr=repr_ndarray)
 
-    cached_regularization: Optional[np.ndarray] = attr.ib(default=None, repr=False)
+    __cached_regularization: Optional[np.ndarray] = attr.ib(default=None, repr=False)
 
     def __attrs_post_init__(self):
         if self.limits is None:
             self.limits = (np.zeros(self.n_dim), np.ones(self.n_dim))
 
-        if self.means is None:
+        if self.__means is None:
             # (b - a) * random_sample() + a
-            self.means = (
-                (self.limits[1]-self.limits[0])
-                * np.random.random((self.n_components, self.n_dim,))
-                + self.limits[0]
-            )
+            self.__means = (self.limits[1] - self.limits[0]) * np.random.random(
+                (self.n_components, self.n_dim,)
+            ) + self.limits[0]
 
-        if self.covs is None:
-            self.covs = (
+        if self.__covs is None:
+            self.__covs = (
                 np.tile(np.identity(self.n_dim), (self.n_components, 1, 1))
-                * np.random.rand(self.n_components)[:, np.newaxis, np.newaxis]  # (1/self.n_components)
+                * np.random.rand(self.n_components)[
+                    :, np.newaxis, np.newaxis
+                ]  # (1/self.n_components)
                 * 10
             )
-        if not self.sufficient_statistics:
-            self.sufficient_statistics += [
+        if not self._sufficient_statistics:
+            self._sufficient_statistics += [
                 np.zeros((self.n_components, self.n_dim)),
                 np.zeros((self.n_components, self.n_dim, self.n_dim)),
             ]
 
-        if self.cached_regularization is None:
-            self.cached_regularization = np.identity(self.n_dim)*1e-6
+        if self.__cached_regularization is None:
+            self.__cached_regularization = np.identity(self.n_dim) * 1e-6
 
     def expect_components(self, data: np.ndarray) -> np.ndarray:
 
@@ -85,116 +100,102 @@ class SpatialModel(BaseModel):
 
         # precisions = _compute_precision_cholesky(self.covs,'full')
         # log_det = _compute_log_det_cholesky(precisions,'full', self.n_dim)
-        precisions, log_det = cholesky_precisions(self.covs)
+        precisions, log_det = cholesky_precisions(self.__covs)
 
         # n - n_samples, d/e - n_dim, c - n_components
-        log_prob = np.sum(np.square(
-            np.einsum('nd,cde->nce', data, precisions) -
-            np.einsum('cd,cde->ce', self.means, precisions)[np.newaxis, :, :]),
-            axis=2)
+        log_prob = np.sum(
+            np.square(
+                np.einsum("nd,cde->nce", data, precisions)
+                - np.einsum("cd,cde->ce", self.__means, precisions)[np.newaxis, :, :]
+            ),
+            axis=2,
+        )
 
-        # weights can / should be zero (caught degenerates)
-        with np.errstate(divide='ignore', invalid='ignore'):
+        with np.errstate(divide="ignore", invalid="ignore"):
 
-            probabilities = np.exp(
-                -.5 * (self.n_dim * np.log(2 * np.pi) + log_prob)
-                + log_det
-            )
+            probabilities = np.exp(-0.5 * (self.n_dim * np.log(2 * np.pi) + log_prob) + log_det)
 
         return probabilities
 
-    def update_statistics(self, case: str, data: Optional[np.ndarray]=None, responsibilities: Optional[np.ndarray]=None, rate:Optional[float] = None ):
+    def update_statistics(
+        # pylint: disable=bad-continuation
+        self,
+        case: str,
+        data: Optional[np.ndarray] = None,
+        responsibilities: Optional[np.ndarray] = None,
+        rate: Optional[float] = None,
+    ):
 
-        if case == 'batch':
+        super().update_statistics(case, data, responsibilities, rate)
+
+        if case == "batch":
             assert data.shape == (self.n_dim)
 
-            self.sufficient_statistics[1] = np.sum(
-                responsibilities[:, :, np.newaxis] * data[:, np.newaxis, :],  # (n_samples, n_components, n_dim)
-                axis=0
+            self._sufficient_statistics[1] = np.sum(
+                responsibilities[:, :, np.newaxis]
+                * data[:, np.newaxis, :],  # (n_samples, n_components, n_dim)
+                axis=0,
             )
 
-            self.sufficient_statistics[2] = np.sum(
-                responsibilities[:, :, np.newaxis, np.newaxis] *
-                np.einsum('Ti,Tj->Tij', data, data)[:, np.newaxis, :, :],  # (n_samples, n_components, n_dim, n_dim)
-                axis=0
+            self._sufficient_statistics[2] = np.sum(
+                responsibilities[:, :, np.newaxis, np.newaxis]
+                * np.einsum("Ti,Tj->Tij", data, data)[
+                    :, np.newaxis, :, :
+                ],  # (n_samples, n_components, n_dim, n_dim)
+                axis=0,
             )
-        elif case == 'online':
+        elif case == "online":
             assert data.shape == (self.n_dim)
 
-            self.sufficient_statistics[1] += (
+            self._sufficient_statistics[1] += (
                 rate * responsibilities[:, np.newaxis] * data[np.newaxis, :]
             )
 
-            self.sufficient_statistics[2] += (
-                rate * responsibilities[:, np.newaxis, np.newaxis] *
-                np.einsum('i,j->ij', data, data)[np.newaxis, :, :]
+            self._sufficient_statistics[2] += (
+                rate
+                * responsibilities[:, np.newaxis, np.newaxis]
+                * np.einsum("i,j->ij", data, data)[np.newaxis, :, :]
             )
-        elif case == 'init':
-            self.sufficient_statistics[1] = (
-                self.sufficient_statistics[0][:, np.newaxis] * self.means
+        elif case == "init":
+            self._sufficient_statistics[1] = (
+                self._sufficient_statistics[0][:, np.newaxis] * self.__means
             )
 
-            self.sufficient_statistics[2] = (
-                self.sufficient_statistics[0][:, np.newaxis, np.newaxis] *
-                (self.covs +
-                 np.einsum('ki,kj->kij', self.means, self.means))
-            )
+            self._sufficient_statistics[2] = self._sufficient_statistics[0][
+                :, np.newaxis, np.newaxis
+            ] * (self.__covs + np.einsum("ki,kj->kij", self.__means, self.__means))
 
     def maximize_components(self):
 
         # suppress div by zero warinings (occur naturally for disabled components)
-        with np.errstate(divide='ignore', invalid='ignore'):
+        with np.errstate(divide="ignore", invalid="ignore"):
 
-            self.means = self.sufficient_statistics[1] / self.sufficient_statistics[0][:, np.newaxis]
+            self.__means = (
+                self._sufficient_statistics[1] / self._sufficient_statistics[0][:, np.newaxis]
+            )
 
-            self.covs = (
-                self.sufficient_statistics[2] / self.sufficient_statistics[0][:, np.newaxis, np.newaxis]
-                - np.einsum('ki,kj->kij', self.means, self.means)
-            ) + self.cached_regularization[np.newaxis, :, :]
+            self.__covs = (
+                self._sufficient_statistics[2]
+                / self._sufficient_statistics[0][:, np.newaxis, np.newaxis]
+                - np.einsum("ki,kj->kij", self.__means, self.__means)
+            ) + self.__cached_regularization[np.newaxis, :, :]
 
-    def reset(self,fancy_index: np.ndarray, randomize=False):
-        # Rename to reset, and add a parameter for
-
-        # Weights are to be set in detect
-        #self.weights[fancy_index] = 1 / self.n_components
-        #self.weights /= np.sum(self.weights)
-
-        if randomize:
-            self.means[fancy_index] = (
-                (self.limits[1]-self.limits[0])
+    def reset(self, fancy_index: np.ndarray):
+        super().reset(fancy_index)
+        if self.random_reset:
+            self.__means[fancy_index] = (
+                (self.limits[1] - self.limits[0])
                 * np.random.random((self.n_components, self.n_dim,))
-                + self.limits[0])[fancy_index]
-            self.covs[fancy_index] = np.identity(self.n_dim)
+                + self.limits[0]
+            )[fancy_index]
+            self.__covs[fancy_index] = np.identity(self.n_dim)
         else:
-            pass
+            self.__means[fancy_index] = 0
+            self.__covs[fancy_index] = np.identity(self.n_dim) * 1e-2
 
-    def find_degenerated(self, method='eigen', remove=True):
-        '''Remove irrelevant components'''
+    def find_degenerated(self) -> np.ndarray:
+        """Remove irrelevant components"""
 
-        if method == 'eigen':
-            self.covs[np.any(np.isnan(self.covs), axis=1)] = 0
-            irrelevant = np.min(np.linalg.eigvals(self.covs), axis=1) < self.min_eigval
-
-        elif method == 'count':
-            # In batch, self.sufficient_statistics is almost equal to self.counter
-            # So we can estimate the number of points for each component and remove
-            # those with less than enogh points (n+1, e.g., 3 points required in 2D
-            # as 2D only spans a line)
-            # In online, the original assumption does not hold
-            irrelevant = self.weights < (self.n_dim+1) / np.sum(self.sufficient_statistics[0])
-
-        if remove:
-            self.priors[irrelevant] = 0.0
-            self.means[irrelevant] = 0
-            self.covs[irrelevant] = np.identity(self.n_dim) * 1e-2
-            # self.pmf[irrelevant] = 0
-        else:
-            raise NotImplementedError
-
-        if self.nonparametric:
-            self.weights = self.stick_breaking()
-        else:
-            self.weights[irrelevant] = 0.0
-            self.weights /= np.sum(self.weights)
-
-        return np.sum(irrelevant)
+        self.__covs[np.any(np.isnan(self.__covs), axis=1)] = 0
+        degenerated = np.min(np.linalg.eigvals(self.__covs), axis=1) < self.min_eigval
+        return np.sum(degenerated)
