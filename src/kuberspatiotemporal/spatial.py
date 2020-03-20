@@ -52,10 +52,9 @@ class SpatialModel(BaseModel):
     """
 
     # public attributes
-    n_dim: int = attr.ib(default=2)
     limits: Optional[Tuple[np.ndarray, np.ndarray]] = attr.ib(
         default=None
-    )  # should have a validator
+    )  # TODO should have a validator
     min_eigval: float = attr.ib(default=1e-2)
 
     # Internal state variables
@@ -64,32 +63,31 @@ class SpatialModel(BaseModel):
 
     __cached_regularization: Optional[np.ndarray] = attr.ib(default=None, repr=False)
 
-    def __attrs_post_init__(self):
+    def initialize(self):
+
+        super().initialize()
+        
         if self.limits is None:
             self.limits = (np.zeros(self.n_dim), np.ones(self.n_dim))
 
-        if self.__means is None:
-            # (b - a) * random_sample() + a
-            self.__means = (self.limits[1] - self.limits[0]) * np.random.random(
-                (self.n_components, self.n_dim,)
-            ) + self.limits[0]
+        # (b - a) * random_sample() + a
+        self.__means = (self.limits[1] - self.limits[0]) * np.random.random(
+            (self.n_components, self.n_dim,)
+        ) + self.limits[0]
 
-        if self.__covs is None:
-            self.__covs = (
-                np.tile(np.identity(self.n_dim), (self.n_components, 1, 1))
-                * np.random.rand(self.n_components)[
-                    :, np.newaxis, np.newaxis
-                ]  # (1/self.n_components)
-                * 10
-            )
-        if not self._sufficient_statistics:
-            self._sufficient_statistics += [
-                np.zeros((self.n_components, self.n_dim)),
-                np.zeros((self.n_components, self.n_dim, self.n_dim)),
-            ]
+        self.__covs = (
+            np.tile(np.identity(self.n_dim), (self.n_components, 1, 1))
+            * np.random.rand(self.n_components)[
+                :, np.newaxis, np.newaxis
+            ]  # (1/self.n_components)
+            * 10
+        )
+        self._sufficient_statistics += [
+            np.zeros((self.n_components, self.n_dim)),
+            np.zeros((self.n_components, self.n_dim, self.n_dim)),
+        ]
 
-        if self.__cached_regularization is None:
-            self.__cached_regularization = np.identity(self.n_dim) * 1e-6
+        self.__cached_regularization = np.identity(self.n_dim) * 1e-6
 
     def expect_components(self, data: np.ndarray) -> np.ndarray:
 

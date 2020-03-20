@@ -45,6 +45,7 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
             Reasign irrelevant components with random values,
             by default: False
     """
+    n_dim: int = attr.ib(default=2)
     n_components: int = attr.ib(default=100)
     nonparametric: bool = attr.ib(default=True)
     scaling_parameter: float = attr.ib(default=2.0)
@@ -59,22 +60,33 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
     _weights: Optional[np.ndarray] = attr.ib(default=None, repr=repr_ndarray)
 
     def __attrs_post_init__(self):
+        logger.warning("in __attrs_post_init__")
+        self.initialize()
 
-        if not self._sufficient_statistics:
-            self._sufficient_statistics += [
-                np.zeros((self.n_components,)),
-            ]
+    def initialize(self):
+        self._sufficient_statistics += [
+            np.zeros((self.n_components,)),
+        ]
 
-        if self.__priors is None:
-            self.__priors = np.random.beta(1, self.scaling_parameter, (self.n_components,))
-            self.__priors[-1] = 1.0  # truncate
+        self.__priors = np.random.beta(1, self.scaling_parameter, (self.n_components,))
+        self.__priors[-1] = 1.0  # truncate
 
-        if self._weights is None:
-            if not self.nonparametric:
-                self._weights = np.ones((self.n_components,)) * 1.0 / self.n_components
-                print("Noope")
-            else:
-                self._weights = self.stick_breaking()
+        if not self.nonparametric:
+            self._weights = np.ones((self.n_components,)) * 1.0 / self.n_components
+        else:
+            self._weights = self.stick_breaking()
+
+    def sync(self, weights: np.ndarray):
+        """
+        Sync estimators in a compound.j
+        
+        Parameters
+        ----------
+        weights : np.ndarray
+            Weights are protected and therefore be shared.
+        """
+        self._weights = weights # not necessary to copy
+
 
     def stick_breaking(self) -> np.ndarray:
         """
@@ -121,13 +133,16 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
             [description]
 
         Returns
-        -------
+        ------- 
         np.ndarray
             [description]
         """
         weighted_prob = self.expect_components(data) * self._weights[np.newaxis, :]
         responsibilities = weighted_prob / np.sum(weighted_prob, axis=1)[:, np.newaxis]
+        # logger.warning('NaN in responsibilities %s', np.sum(np.isnan(responsibilities)))
         responsibilities[np.isnan(responsibilities)] = 0
+        logger.debug("%s %s", weighted_prob.shape, responsibilities.shape)
+        assert responsibilities.shape == (data.shape[0], self.n_components), f"Wrong shape: {responsibilities.shape}"
         return responsibilities
 
     def maximize(self):
@@ -163,13 +178,14 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
         """
 
         n_samples = data.shape[0]
+
+        if not data.shape[1] == self.n_dim:
+            raise ValueError(f"Wrong number input dimensions: {data.shape[1]} != {self.n_dim}")
+
         self.counter = n_samples
 
         responsibilities = np.asarray(self.expect(data))
 
-        self._sufficient_statistics[0] = np.sum(
-            responsibilities, axis=0  # (n_samples, n_components)
-        )
         self.update_statistics(case="batch", data=data, responsibilities=responsibilities)
 
         self.maximize()
@@ -242,6 +258,9 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
             [description], by default False
         """
 
+        assert data.ndim == 2, f"Data should be 2D is {data.ndim}"
+
+
         if len(data.shape) != 2:
             raise ValueError(f"Wrong input dimensions (at least 2D)")
 
@@ -286,6 +305,7 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
             [description], by default None
         """
 
+
         if case == "batch":
             self._sufficient_statistics[0] = np.sum(
                 responsibilities,  # (n_samples, n_components)
@@ -297,7 +317,7 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
                 rate * responsibilities
             )
 
-        elif case == "init":
+        elif case == "init": # actually init could go to __attrs_post_init__
             self._sufficient_statistics[0] = (
                 self._weights * 10
             )
@@ -340,7 +360,7 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
         """
         # FIXME: implement
 
-    @abstractmethod
+    # @abstractmethod
     def reset(self, fancy_index: np.ndarray):
         """
         Resets components found by :meth:`find_degenerated`.

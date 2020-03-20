@@ -48,13 +48,15 @@ class KuberModel(BaseModel):
     # Internal state variable: Probability mass functions
     __pmf: Optional[np.ndarray] = attr.ib(default=None, repr=None)
 
-    def __attrs_post_init__(self):
+    def initialize(self):
 
-        if not self._sufficient_statistics:
-            self._sufficient_statistics += [np.zeros((self.n_components, self.n_symbols))]
+        super().initialize()
+
+        self.n_dim = 1
+        self._sufficient_statistics += [np.zeros((self.n_components, self.n_symbols))]
         assert len(self._sufficient_statistics) == 2, "Warning super method not called"
-        if self.__pmf is None:
-            self.__pmf = np.random.dirichlet([1] * self.n_symbols, self.n_components)
+        self.__pmf = np.random.dirichlet([1] * self.n_symbols, self.n_components)
+        logger.debug(self.__pmf.shape)
 
     def reset(self, fancy_index: np.ndarray):
         if self.random_reset:
@@ -63,7 +65,10 @@ class KuberModel(BaseModel):
             self.__pmf[fancy_index] = np.zeros(self.n_symbols)
 
     def expect_components(self, data: np.ndarray) -> np.ndarray:
-        return self.__pmf[:, data.astype(int)].T
+        assert data.ndim == 2, f"Data should be 2D is {data.ndim}"
+
+        assert data.shape[1] == 1, "Data not a column vector"
+        return self.__pmf[:, data.reshape(-1).astype(int)].T
 
     def maximize_components(self):
 
@@ -83,15 +88,19 @@ class KuberModel(BaseModel):
     ):
         super().update_statistics(case, data, responsibilities, rate)
 
+        assert data.ndim == 2, f"Data should be 2D is {data.ndim}"
+
         if case == "batch":
             n_samples = data.shape[0]
             temp = np.zeros((n_samples, self.n_components, self.n_symbols))
-            temp[np.arange(n_samples), :, data.astype(int)] = responsibilities
+            temp[np.arange(n_samples), :, data.reshape(-1).astype(int)] = responsibilities
             self._sufficient_statistics[1] = np.sum(temp, axis=0)
+
         elif case == "online":
             temp = np.zeros((n_samples, self.n_components, self.n_symbols))
             temp[np.arange(n_samples), :, data.astype(int)] = responsibilities
             self._sufficient_statistics[1] = np.sum(temp, axis=0)
+
         elif case == "init":
             temp = np.zeros((n_samples, self.n_components, self.n_symbols))
             temp[np.arange(n_samples), :, data.astype(int)] = responsibilities

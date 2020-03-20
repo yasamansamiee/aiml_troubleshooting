@@ -22,10 +22,13 @@ from .base import BaseModel
 
 logger = logging.getLogger(__name__)
 
+logger.info(__name__)
+
 
 @attr.s
 class Feature:
     """Description of features (columns) in the input data."""
+
     model: BaseModel = attr.ib(repr=lambda x: x.__class__.__name__)
     columns: List[int] = attr.ib(factory=list)
     name: Optional[str] = attr.ib(default=None)
@@ -83,23 +86,48 @@ class KuberspatiotemporalModel(BaseModel):
 
     features: List[Feature] = attr.ib(factory=list)
 
+    def initialize(self):
+        super().initialize()
+
+        for i in self.features:
+            i.model.n_components = self.n_components
+            i.model.initialize()
+            i.model.sync(self._weights)
+            # i.model._BaseModel__priors = self._BaseModel__priors.copy()
+
+        logger.debug(self._sufficient_statistics[0])
+
     def reset(self, fancy_index: np.ndarray):
         for feature in self.features:
             feature.model.reset(fancy_index)
 
     def expect_components(self, data: np.ndarray) -> np.ndarray:
-        return np.prod(
-            feature.model.expect_components(data[:, feature.columns]) for feature in self.features
+
+        probability = np.prod(
+            np.array(
+                [
+                    feature.model.expect_components(data[:, feature.columns])
+                    for feature in self.features
+                ]
+            ),
+            axis=0,
         )
+        assert probability.shape == (
+            data.shape[0],
+            self.n_components,
+        ), f"Wrong shape: {probability.shape}"
+
+        return probability
 
     def maximize_components(self):
         for feature in self.features:
+            feature.model.sync(self._weights)
             feature.model.maximize_components()
 
-    def find_degenerated(self, method="eigen", remove=True) -> np.ndarray:
+    def find_degenerated(self) -> np.ndarray:
         degenerated = False
         for feature in self.features:
-            degenerated = degenerated | feature.model.find_degenerated(method, remove)
+            degenerated = degenerated | feature.model.find_degenerated()
             # Comment: `|=` won't broadcast
         return degenerated
 
@@ -111,10 +139,18 @@ class KuberspatiotemporalModel(BaseModel):
         responsibilities: Optional[np.ndarray] = None,
         rate: Optional[float] = None,
     ):
+
         super().update_statistics(case, data, responsibilities, rate)
 
         for feature in self.features:
+
             feature.model.update_statistics(case, data[:, feature.columns], responsibilities, rate)
-            # sync the models, ignore 'dirty' access to protected variable
+
+            # Control:
             # pylint: disable=protected-access
-            feature.model._sufficient_statistics[0] = self._sufficient_statistics[0].copy()
+            assert np.allclose(
+                self._sufficient_statistics[0], feature.model._sufficient_statistics[0]
+            )
+            assert np.allclose(
+                self._weights, feature.model._weights
+            ), f"\n{self._weights}\n{feature.model._weights}"
