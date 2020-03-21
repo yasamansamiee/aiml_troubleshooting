@@ -90,8 +90,13 @@ class KuberspatiotemporalModel(BaseModel):
         super().initialize()
 
         for i in self.features:
-            i.model.n_components = self.n_components
-            i.model.initialize()
+            if not i.model.n_components == self.n_components:
+                raise ValueError(
+                    f"Features must have the same number of components as"
+                    f"the compound: {i.model.n_components} != {self.n_components}"
+                )
+            # i.model.n_components = self.n_components
+            # i.model.initialize()
             i.model.sync(self._weights)
             # i.model._BaseModel__priors = self._BaseModel__priors.copy()
 

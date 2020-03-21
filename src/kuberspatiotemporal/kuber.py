@@ -46,15 +46,16 @@ class KuberModel(BaseModel):
     # public attributes
     n_symbols: int = attr.ib(default=5)  # CATEGORICAL
     # Internal state variable: Probability mass functions
-    __pmf: Optional[np.ndarray] = attr.ib(default=None, repr=None)
+    __pmf: Optional[np.ndarray] = attr.ib(default=None, repr=False)
 
     def initialize(self):
 
+        logger.info('kuber initialize')
         super().initialize()
 
         self.n_dim = 1
         self._sufficient_statistics += [np.zeros((self.n_components, self.n_symbols))]
-        assert len(self._sufficient_statistics) == 2, "Warning super method not called"
+        assert len(self._sufficient_statistics) == 2, f"Warning super method not called (len(S)={len(self._sufficient_statistics)})"
         self.__pmf = np.random.dirichlet([1] * self.n_symbols, self.n_components)
         logger.debug(self.__pmf.shape)
 

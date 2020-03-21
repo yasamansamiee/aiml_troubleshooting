@@ -64,6 +64,8 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
         self.initialize()
 
     def initialize(self):
+        logger.info('base initialize')
+
         self._sufficient_statistics += [
             np.zeros((self.n_components,)),
         ]
