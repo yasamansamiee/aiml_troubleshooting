@@ -10,7 +10,7 @@ tool [Poetry](https://python-poetry.org/) then create an isolated virtual
 environment and install the dependencies.
 
 ```sh
-poetry install 
+poetry install
 ```
 
 Per terminal session,  the following command should be executed
@@ -44,4 +44,12 @@ pytest --log-level=WARNING
 pytest --log-level=DEBUG -k "TestKuberModel"
 ```
 
+To work with [VisualStudio Code]():
+
+```sh
+cp .vscode/template.settings.json .vscode/settings.json
+which python # copy the path without the executable
+```
+
+and add the path to the virtual environment to in the `"python.pythonPath"` setting.
 

@@ -50,12 +50,16 @@ class KuberModel(BaseModel):
 
     def initialize(self):
 
-        logger.info('kuber initialize')
+        logger.info("kuber initialize")
         super().initialize()
 
         self.n_dim = 1
         self._sufficient_statistics += [np.zeros((self.n_components, self.n_symbols))]
-        assert len(self._sufficient_statistics) == 2, f"Warning super method not called (len(S)={len(self._sufficient_statistics)})"
+
+        assert (
+            len(self._sufficient_statistics) == 2
+        ), f"Warning super method not called (len(S)={len(self._sufficient_statistics)})"
+
         self.__pmf = np.random.dirichlet([1] * self.n_symbols, self.n_components)
         logger.debug(self.__pmf.shape)
 
@@ -110,4 +114,3 @@ class KuberModel(BaseModel):
     def find_degenerated(self):
         # One could check for a symbol with prob 1 but I don't think that's a good idea
         return np.zeros(self.n_components, dtype=bool)
- 

@@ -12,6 +12,7 @@ __maintainer__ = "Stefan Ulbrich"
 __email__ = "Stefan.Ulbrich@acceptto.com"
 __status__ = "alpha"
 __date__ = "2020-03-19"
+__all__ = ["KuberspatiotemporalModel"]
 
 from typing import List, Optional
 import logging
@@ -22,7 +23,6 @@ from .base import BaseModel
 
 logger = logging.getLogger(__name__)
 
-logger.info(__name__)
 
 
 @attr.s
