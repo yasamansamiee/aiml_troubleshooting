@@ -39,7 +39,9 @@ make html
 To run unit tests, run:
 
 ```sh
-pytest
+pytest --log-level=WARNING
+# Specify a selected test
+pytest --log-level=DEBUG -k "TestKuberModel"
 ```
 
 

@@ -31,7 +31,7 @@ class TestModel:
     def test_incremental_em(self):
         pass
 
-    def test_outer_product_block_calculus(self):
+    def test_outer_product_block_calculus(self, logger):
         # einsum('Xi,Xj->Xij',a,a): outerproduct of each row with itself. For MxN array, leads to MxNxN.
         # np.newaxis increased the dimensionality of the tensor. numpy broadcasting inserts copies along
         # such the new axes to match the other operands dimensionality.
@@ -43,5 +43,7 @@ class TestModel:
         )  # python tuple comparison
 
         for i, _ in enumerate(data):
+            logger.debug(np.einsum('Ti,Tj->Tij', data, data)[i, :, :]) 
+            logger.debug(data[i].reshape(1, -1)@data[i].reshape(-1, 1))
             assert np.allclose(np.einsum('Ti,Tj->Tij', data, data)[i, :, :],
-                               data[i].reshape(1, -1)@data[i].reshape(-1, 1))
+                               data[i].reshape(-1, 1)@data[i].reshape(1, -1))
