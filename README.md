@@ -5,12 +5,13 @@ A package to experiment with probabilistic, heterogeneous mixture models for ris
 ## Installation and development
 
 
-First make sure to install Python (>= 3.7) the dependency management
+First make sure to install Python (== 3.7) the dependency management
 tool [Poetry](https://python-poetry.org/) then create an isolated virtual
-environment and install the dependencies.
+environment and install the dependencies. Note that 3.8 currently
+installation fails (issue with the dependencies) while the code itself is compatible.
 
 ```sh
-poetry install 
+poetry install
 ```
 
 Per terminal session,  the following command should be executed
@@ -44,4 +45,23 @@ pytest --log-level=WARNING
 pytest --log-level=DEBUG -k "TestKuberModel"
 ```
 
+To work with [VisualStudio Code](https://code.visualstudio.com/):
 
+```sh
+cp .vscode/template.settings.json .vscode/settings.json
+which python # copy the path without the executable
+```
+
+and add the path to the virtual environment to in the `"python.pythonPath"` setting.
+
+To use the classes, shortcuts have been added:
+
+```python
+from kuberspatiotemporal import (
+    KuberspatiotemporalModel, # Also alias `CompoundModel`
+    KuberModel,
+    SpatialModel
+)
+```
+
+Build and read the documentation for more details about usage.

@@ -11,5 +11,6 @@
     "autoDocstring.docstringFormat": "numpy",
     "autoDocstring.guessTypes": true,
     "autoDocstring.includeExtendedSummary": true,
-    "autoDocstring.startOnNewLine": true
+    "autoDocstring.startOnNewLine": true,
+    "files.trimTrailingWhitespace": true
 }

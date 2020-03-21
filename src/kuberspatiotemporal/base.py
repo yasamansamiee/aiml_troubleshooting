@@ -64,6 +64,12 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
         self.initialize()
 
     def initialize(self):
+        """
+        Initialize the object.
+
+        Child classes *should* call this class.
+        """
+
         logger.info('base initialize')
 
         self._sufficient_statistics += [
@@ -81,7 +87,7 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
     def sync(self, weights: np.ndarray):
         """
         Sync estimators in a compound.j
-        
+
         Parameters
         ----------
         weights : np.ndarray
@@ -135,7 +141,7 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
             [description]
 
         Returns
-        ------- 
+        -------
         np.ndarray
             [description]
         """
@@ -219,7 +225,6 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
             ((self.counter) ** (-self.alpha)) ** 100,
         )
 
-        degs = 0
         for sample in data:
 
             self.counter += 1
@@ -240,11 +245,7 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
             )
 
             self.maximize()
-            d = self.find_degenerated()
-            if d != degs:
-                logger.debug("Detected %d degenerated", degs)
-                degs = d
-        logger.debug("Finished. Detected %d degenerated", degs)
+            self.find_degenerated()
 
     def fit(self, data: np.ndarray, n_iterations=100, online=False):
         """
