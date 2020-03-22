@@ -1,8 +1,13 @@
+# pylint: disable=R,C,W
+
+
 import logging
 import pytest
 from scipy.stats import multinomial
 from numpy.random import dirichlet
 import numpy as np
+
+
 
 from kuberspatiotemporal.kuber import KuberModel
 from kuberspatiotemporal.compound import KuberspatiotemporalModel, Feature
@@ -45,9 +50,9 @@ def categorical2D():
             Feature(KuberModel(n_symbols=3, nonparametric=True, n_components=2), [1]),
         ],
     )
-
-    ground_truth.features[0].model._KuberModel__pmf = np.array([pm11,pm21])
-    ground_truth.features[1].model._KuberModel__pmf = np.array([pm12,pm22])
+    # pylint: disable=protected-access
+    ground_truth.features[0].model._KuberModel__pmf = np.array([pm11,pm12])
+    ground_truth.features[1].model._KuberModel__pmf = np.array([pm21,pm22])
     ground_truth._weights = pi
 
     return X, ground_truth
@@ -55,5 +60,5 @@ def categorical2D():
 
 @pytest.fixture
 def logger():
-    logger = logging.getLogger('UnitTest')
-    return logger
+    logger_ = logging.getLogger('UnitTest')
+    return logger_

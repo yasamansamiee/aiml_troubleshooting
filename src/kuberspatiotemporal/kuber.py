@@ -91,7 +91,6 @@ class KuberModel(BaseModel):
         responsibilities: Optional[np.ndarray] = None,
         rate: Optional[float] = None,
     ):
-        super().update_statistics(case, data, responsibilities, rate)
 
         assert data.ndim == 2, f"Data should be 2D is {data.ndim}"
 

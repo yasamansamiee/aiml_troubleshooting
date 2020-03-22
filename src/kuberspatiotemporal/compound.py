@@ -97,16 +97,18 @@ class KuberspatiotemporalModel(BaseModel):
                 )
             # i.model.n_components = self.n_components
             # i.model.initialize()
-            i.model.sync(self._weights)
+            i.model.sync(self._weights, self._sufficient_statistics[0])
             # i.model._BaseModel__priors = self._BaseModel__priors.copy()
 
-        logger.debug(self._sufficient_statistics[0])
+        # logger.debug(self._sufficient_statistics[0])
 
     def reset(self, fancy_index: np.ndarray):
         for feature in self.features:
             feature.model.reset(fancy_index)
 
     def expect_components(self, data: np.ndarray) -> np.ndarray:
+        for feature in self.features:
+            feature.model.sync(self._weights, self._sufficient_statistics[0])
 
         probability = np.prod(
             np.array(
@@ -126,7 +128,7 @@ class KuberspatiotemporalModel(BaseModel):
 
     def maximize_components(self):
         for feature in self.features:
-            feature.model.sync(self._weights)
+            feature.model.sync(self._weights, self._sufficient_statistics[0])
             feature.model.maximize_components()
 
     def find_degenerated(self) -> np.ndarray:
@@ -145,17 +147,18 @@ class KuberspatiotemporalModel(BaseModel):
         rate: Optional[float] = None,
     ):
 
-        super().update_statistics(case, data, responsibilities, rate)
+        # super().update_statistics(case, data, responsibilities, rate)
 
         for feature in self.features:
+            feature.model.sync(self._weights, self._sufficient_statistics[0])
 
             feature.model.update_statistics(case, data[:, feature.columns], responsibilities, rate)
 
             # Control:
             # pylint: disable=protected-access
-            assert np.allclose(
-                self._sufficient_statistics[0], feature.model._sufficient_statistics[0]
-            )
+            # assert np.allclose(
+            #     self._sufficient_statistics[0], feature.model._sufficient_statistics[0]
+            # )
             assert np.allclose(
                 self._weights, feature.model._weights
             ), f"\n{self._weights}\n{feature.model._weights}"

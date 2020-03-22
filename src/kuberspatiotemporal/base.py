@@ -111,7 +111,7 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
         else:
             self._weights = self.stick_breaking()
 
-    def sync(self, weights: np.ndarray):
+    def sync(self, weights: np.ndarray,s0: np.ndarray):
         """
         Sync estimators in a compound.
 
@@ -121,6 +121,7 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
             Weights are protected and therefore be shared.
         """
         self._weights = weights  # not necessary to copy
+        self._sufficient_statistics[0] = s0
 
     def stick_breaking(self) -> np.ndarray:
         """
@@ -196,7 +197,7 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
 
         # logger.warning('NaN in responsibilities %s', np.sum(np.isnan(responsibilities)))
         responsibilities[np.isnan(responsibilities)] = 0
-        logger.debug("%s %s", weighted_prob.shape, responsibilities.shape)
+        # logger.debug("%s %s", weighted_prob.shape, responsibilities.shape)
         assert responsibilities.shape == (
             data.shape[0],
             self.n_components,
@@ -234,19 +235,19 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
         data : np.ndarray
             [description]
         """
+        n_samples = data.shape[0]
+        self.counter = n_samples
 
-        prev_lower_bound = -np.infty
-        for i in self.n_iterations:
+        last_score = -np.infty
+        for i in range(self.n_iterations):
             if i % 10 == 0:
                 logger.info("Step %d/%d", i, self.n_iterations)
 
-            n_samples = data.shape[0]
 
             if not data.shape[1] == self.n_dim:
                 raise ValueError(f"Wrong number input dimensions: {data.shape[1]} != {self.n_dim}")
 
-            self.counter = n_samples
-            responsibilities, _, lower_bound = self.expect(data)
+            responsibilities, _, score = self.expect(data)
 
             # Update S_0
             self._sufficient_statistics[0] = np.sum(
@@ -255,11 +256,15 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
 
             self.update_statistics(case="batch", data=data, responsibilities=responsibilities)
 
+            logger.debug(self._weights)
+            logger.debug(self.__priors)
+            logger.debug("Diff: %f, %f", abs(score - last_score), score )
             # Check whether to stop
-            if abs(lower_bound - prev_lower_bound) < 1e-3:  # self.tol:
+            if abs(score - last_score) < 1e-3:  # self.tol:
+                logger.info("Converged after %d steps", i+1)
                 # self.converged_ = True
                 break
-
+            last_score = score
             self.maximize()
             self.find_degenerated()
 
