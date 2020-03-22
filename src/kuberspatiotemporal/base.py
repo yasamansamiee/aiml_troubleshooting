@@ -98,7 +98,6 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
         Child classes *should* call this class.
         """
 
-        logger.info("base initialize")
 
         self._sufficient_statistics += [
             np.zeros((self.n_components,)),

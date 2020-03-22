@@ -54,6 +54,13 @@ which python # copy the path without the executable
 
 and add the path to the virtual environment to in the `"python.pythonPath"` setting.
 
+```sh
+cp .vscode/template.settings.json .vscode/settings.json
+which python # copy the path without the executable
+```
+
+and add the path to the virtual environment to in the `"python.pythonPath"` setting.
+
 To use the classes, shortcuts have been added:
 
 ```python
