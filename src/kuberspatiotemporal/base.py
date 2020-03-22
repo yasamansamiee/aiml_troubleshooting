@@ -15,8 +15,10 @@ __date__ = "2020-03-18"
 
 import logging
 from abc import ABC, abstractmethod
-from typing import Optional, List
+from typing import Optional, List, Tuple
 from sklearn.base import BaseEstimator, DensityMixin
+
+# from sklearn.mixture import _base, _gaussian_mixture
 
 import numpy as np
 import attr
@@ -25,17 +27,19 @@ from .tools import repr_list_ndarray, repr_ndarray
 
 logger = logging.getLogger(__name__)
 
+
 @attr.s
 class BaseModel(DensityMixin, BaseEstimator, ABC):
     r"""
     Base class for the Dirichlet process mixture models in this package.
     Learning works in batch and incremental mode.
+
     Parameters
     ----------
         n_components : int
             Number of mixture components, by default 100
         alpha: float
-            Forgetting factor :math:`0.5<\alpha\leg1`, by default 0.5
+            Forgetting factor :math:`0.5<\alpha\leq 1`, by default 0.5
         nonparametric : bool
             Switch between nonparametric Dirichlet process model and regular
             finite mixture model, by default True
@@ -44,19 +48,43 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
         random_reset : bool
             Reasign irrelevant components with random values,
             by default: False
+        n_iterations : int
+            In case of batch learning, this number refer to the maximal number of
+            alterations in the EM algorith. In online learning, this parameter is
+            used to set how many times the same data set should be processed (mini batch),
+            by default 100
     """
+
     n_dim: int = attr.ib(default=2)
+
     n_components: int = attr.ib(default=100)
+
     nonparametric: bool = attr.ib(default=True)
+
     scaling_parameter: float = attr.ib(default=2.0)
-    alpha: float = attr.ib(default=0.75)
+    alpha: float = attr.ib(default=0.75) # FIXME rename .. alpha is used twice in the origninal paper
     random_reset: bool = attr.ib(default=False)
+    online_learning: bool = attr.ib(default=False)
+    n_iterations: int = attr.ib(default=100)
 
     counter: int = attr.ib(default=0)
+
+    #: Sufficient statistics used for computing parameters in the maximization step
+    #: The base class defines the first element. Additionally required statistics
+    #: have to be implemented in the subclasses.
+    #:
+    #: .. math::
+    #:
+    #:     S_0 = \left( \sum_{t\in T} \mathbb E[\delta_i(x)|y_{T},\Phi] \right)_{i \in I}
     _sufficient_statistics: List[np.ndarray] = attr.ib(
         factory=list, repr=lambda x: repr_list_ndarray
     )
+
+    #: Ratios :math:`\nu_i \sim \text{Beta}(1,\alpha)`
+    #: for the stick-breaking process (if :attr:`nonparametric` is :code:`True`)
     __priors: Optional[np.ndarray] = attr.ib(default=None, repr=repr_ndarray)
+
+    #: Weights :math:`\pi_i` of the mixture
     _weights: Optional[np.ndarray] = attr.ib(default=None, repr=repr_ndarray)
 
     def __attrs_post_init__(self):
@@ -70,7 +98,7 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
         Child classes *should* call this class.
         """
 
-        logger.info('base initialize')
+        logger.info("base initialize")
 
         self._sufficient_statistics += [
             np.zeros((self.n_components,)),
@@ -86,15 +114,14 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
 
     def sync(self, weights: np.ndarray):
         """
-        Sync estimators in a compound.j
+        Sync estimators in a compound.
 
         Parameters
         ----------
         weights : np.ndarray
             Weights are protected and therefore be shared.
         """
-        self._weights = weights # not necessary to copy
-
+        self._weights = weights  # not necessary to copy
 
     def stick_breaking(self) -> np.ndarray:
         """
@@ -103,16 +130,16 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
 
         Returns
         -------
-        np.ndarray
-            [description]
+        weights: np.ndarray, shape (n_components,)
+            New weights.
         """
-        _weights = np.empty(self.__priors.shape)
+        weights = np.empty(self.__priors.shape)
         self.__priors[-1] = 1.0  # truncate
 
-        _weights[0] = self.__priors[0]
-        _weights[1:] = self.__priors[1:] * np.cumprod(1 - self.__priors)[:-1]
+        weights[0] = self.__priors[0]
+        weights[1:] = self.__priors[1:] * np.cumprod(1 - self.__priors)[:-1]
 
-        return _weights
+        return weights
 
     def predict(self, data: np.ndarray) -> np.ndarray:
         """
@@ -128,30 +155,54 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
         np.ndarray
             [description]
         """
-        responsibilities = np.asarray(self.expect(data))
-        return np.argmax(responsibilities, axis=1), responsibilities
+        responsibilities, _, _ = self.expect(data)
+        return np.argmax(responsibilities, axis=1)#, responsibilities
 
-    def expect(self, data: np.ndarray) -> np.ndarray:
-        """
+    def expect(self, data: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        r"""
         Expectation step
 
         Parameters
         ----------
         data : np.ndarray
-            [description]
+            The training data. Shape: (n_samples, n_components)
 
         Returns
         -------
-        np.ndarray
-            [description]
+        responsibilities : np.ndarray, shape (n_samples, n_components)
+
+            .. math::
+
+                \left(\frac{\pi_i P(x_t=i|y_t,\Phi)}{\sum_{j\in I} \pi_j P(x_t=j|y_t,\Phi)}\right)_{i \in I, t\in T}
+
+        score_samples : np.ndarray, shape (n_samples,)
+            Scores of all samples: Logarithms of the probabilities (or densities) of each sample in data.
+
+            .. math::
+
+                \left( \log \left(\sum_{i \in I} \pi_i P(x_t=i|y_t,\Phi) \right)\right)_{t \in T}
+
+        score: float
+            Score: Mean of the logarithms of the probabilities (or densities)  of each sample in data.
+
+            .. math::
+
+                \frac{1}{|T|} \sum_{t \in T} \left( \log \left(\sum_{i \in I} \pi_i P(x_t=i|y_t,\Phi)\right) \right)
+
+
         """
         weighted_prob = self.expect_components(data) * self._weights[np.newaxis, :]
         responsibilities = weighted_prob / np.sum(weighted_prob, axis=1)[:, np.newaxis]
+        log_probabilities = np.log(np.sum(weighted_prob, axis=1))
+
         # logger.warning('NaN in responsibilities %s', np.sum(np.isnan(responsibilities)))
         responsibilities[np.isnan(responsibilities)] = 0
         logger.debug("%s %s", weighted_prob.shape, responsibilities.shape)
-        assert responsibilities.shape == (data.shape[0], self.n_components), f"Wrong shape: {responsibilities.shape}"
-        return responsibilities
+        assert responsibilities.shape == (
+            data.shape[0],
+            self.n_components,
+        ), f"Wrong shape: {responsibilities.shape}"
+        return responsibilities, log_probabilities, log_probabilities.mean()
 
     def maximize(self):
         """
@@ -185,19 +236,26 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
             [description]
         """
 
-        n_samples = data.shape[0]
+        prev_lower_bound = -np.infty
+        for i in self.n_iterations:
+            if i % 10 == 0:
+                logger.info("Step %d/%d", i, self.n_iterations)
 
-        if not data.shape[1] == self.n_dim:
-            raise ValueError(f"Wrong number input dimensions: {data.shape[1]} != {self.n_dim}")
+            n_samples = data.shape[0]
 
-        self.counter = n_samples
+            if not data.shape[1] == self.n_dim:
+                raise ValueError(f"Wrong number input dimensions: {data.shape[1]} != {self.n_dim}")
 
-        responsibilities = np.asarray(self.expect(data))
+            self.counter = n_samples
+            responsibilities, _, lower_bound = self.expect(data)
 
-        self.update_statistics(case="batch", data=data, responsibilities=responsibilities)
+            self.update_statistics(case="batch", data=data, responsibilities=responsibilities)
+            if abs(lower_bound - prev_lower_bound) < 1e-3:  # self.tol:
+                # self.converged_ = True
+                break
 
-        self.maximize()
-        self.find_degenerated()
+            self.maximize()
+            self.find_degenerated()
 
     def online(self, data: np.ndarray):
         """
@@ -225,29 +283,38 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
             ((self.counter) ** (-self.alpha)) ** 100,
         )
 
-        for sample in data:
+        for i in self.n_iterations:
+            for sample in data:
 
-            self.counter += 1
+                self.counter += 1
 
-            responsibilities = np.asarray(self.expect(sample.reshape(1, -1))).reshape(-1)
+                responsibilities, _ = self.expect(sample.reshape(1, -1))
+                responsibilities = responsibilities.reshape(-1)
 
-            rate = (self.counter) ** (-self.alpha)
+                rate = (self.counter) ** (-self.alpha)
 
-            # First reduce the influence of the older samples
-            for i in self._sufficient_statistics:
-                i *= 1 - rate
+                # First reduce the influence of the older samples
+                for i in self._sufficient_statistics:
+                    i *= 1 - rate
 
-            # Then introduce the new sample
-            self._sufficient_statistics[0] += rate * responsibilities
+                # Then introduce the new sample
+                self._sufficient_statistics[0] += rate * responsibilities
 
-            self.update_statistics(
-                case="online", data=sample, responsibilities=responsibilities, rate=rate
-            )
+                self.update_statistics(
+                    case="online", data=sample, responsibilities=responsibilities, rate=rate
+                )
 
-            self.maximize()
-            self.find_degenerated()
+                self.maximize()
+                self.find_degenerated()
 
-    def fit(self, data: np.ndarray, n_iterations=100, online=False):
+    def score_samples(self, data, Y=None) -> np.ndarray:
+        return self.expect(data)[1]
+
+    def score(self, data, Y=None) -> float:
+        return self.expect(data)[2]
+
+    # FIXME: more initialization parameters
+    def fit(self, data: np.ndarray, y=None):
         """
         [summary]
 
@@ -263,22 +330,23 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
 
         assert data.ndim == 2, f"Data should be 2D is {data.ndim}"
 
-
         if len(data.shape) != 2:
             raise ValueError(f"Wrong input dimensions (at least 2D)")
 
         if data.shape[0] == 0:
             logger.info("Empty data set")
             return
-        logger.info("Learning %d samples (%s)", data.shape[0], "Online" if online else "Batch")
 
-        for i in range(n_iterations):
-            if i % 10 == 0:
-                logger.info("Step %d/%d", i, n_iterations)
-            if online:
-                self.online(data)
-            else:
-                self.batch(data)
+        logger.info(
+            "Learning %d samples (%s)", data.shape[0], "Online" if self.online_learning else "Batch"
+        )
+
+        if self.online_learning:
+            self.online(data)
+        else:
+            self.batch(data)
+
+        return self
 
     def update_statistics(
         # pylint: disable=bad-continuation,unused-argument
@@ -292,7 +360,7 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
         Update the sufficient statistics required for online
         learning and batch learning.
 
-        Subclasses should call the method of the Base class
+        Subclasses **must** call the method of the Base class
         with `super()` to update the first entry of the
         sufficient statistics.
 
@@ -308,43 +376,16 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
             [description], by default None
         """
 
-
         if case == "batch":
             self._sufficient_statistics[0] = np.sum(
-                responsibilities,  # (n_samples, n_components)
-                axis=0
+                responsibilities, axis=0  # (n_samples, n_components)
             )
 
         elif case == "online":
-            self._sufficient_statistics[0] += (
-                rate * responsibilities
-            )
+            self._sufficient_statistics[0] += rate * responsibilities
 
-        elif case == "init": # actually init could go to __attrs_post_init__
-            self._sufficient_statistics[0] = (
-                self._weights * 10
-            )
-
-    def score(self, X: np.ndarray, y=None)->float:
-        """
-        TODO: Fill out
-
-        Parameters
-        ----------
-        X : np.ndarray
-            [description]
-        y : [type], optional
-            [description], by default None
-
-        Returns
-        -------
-        float
-            [description]
-        """
-        # FIXME: implement
-        return 0
-
-
+        elif case == "init":  # actually init could go to __attrs_post_init__
+            self._sufficient_statistics[0] = self._weights * 10
 
     def predict_proba(self, X: np.ndarray) -> np.ndarray:
         """
