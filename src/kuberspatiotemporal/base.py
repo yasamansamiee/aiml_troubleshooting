@@ -248,7 +248,14 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
             self.counter = n_samples
             responsibilities, _, lower_bound = self.expect(data)
 
+            # Update S_0
+            self._sufficient_statistics[0] = np.sum(
+                responsibilities, axis=0  # (n_samples, n_components)
+            )
+
             self.update_statistics(case="batch", data=data, responsibilities=responsibilities)
+
+            # Check whether to stop
             if abs(lower_bound - prev_lower_bound) < 1e-3:  # self.tol:
                 # self.converged_ = True
                 break
@@ -269,7 +276,6 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
         if self.counter == 0:
 
             self._sufficient_statistics[0] = self._weights * 10
-
             self.update_statistics(case="init")
 
         self.counter = 10
@@ -286,17 +292,18 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
             for sample in data:
 
                 self.counter += 1
-
-                responsibilities, _ = self.expect(sample.reshape(1, -1))
-                responsibilities = responsibilities.reshape(-1)
-
                 rate = (self.counter) ** (-self.alpha)
-
-                # First reduce the influence of the older samples
                 for i in self._sufficient_statistics:
                     i *= 1 - rate
 
                 # Then introduce the new sample
+                self._sufficient_statistics[0] += rate * responsibilities
+
+                responsibilities, _ = self.expect(sample.reshape(1, -1))
+                responsibilities = responsibilities.reshape(-1)
+
+
+                # First reduce the influence of the older samples
                 self._sufficient_statistics[0] += rate * responsibilities
 
                 self.update_statistics(
@@ -347,6 +354,7 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
 
         return self
 
+    @abstractmethod
     def update_statistics(
         # pylint: disable=bad-continuation,unused-argument
         self,
@@ -375,16 +383,9 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
             [description], by default None
         """
 
-        if case == "batch":
-            self._sufficient_statistics[0] = np.sum(
-                responsibilities, axis=0  # (n_samples, n_components)
-            )
 
-        elif case == "online":
-            self._sufficient_statistics[0] += rate * responsibilities
 
-        elif case == "init":  # actually init could go to __attrs_post_init__
-            self._sufficient_statistics[0] = self._weights * 10
+
 
     def predict_proba(self, X: np.ndarray) -> np.ndarray:
         """
@@ -403,7 +404,6 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
         """
         # FIXME: implement
 
-    # @abstractmethod
     def reset(self, fancy_index: np.ndarray):
         """
         Resets components found by :meth:`find_degenerated`.
