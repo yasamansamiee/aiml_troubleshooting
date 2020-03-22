@@ -1,9 +1,17 @@
 @startuml
-|BaseModel|
+|#AntiqueWhite|BaseModel|
 start
 ->         abstract method;
 |#AntiqueWhite|KuberspatiotemporalModel|
 :expect_component(X);
+-> share weights;
+split
+|Children|
+:sync(weights);
+split again
+:sync(weights);
+end split
+|#AntiqueWhite|KuberspatiotemporalModel|
 :delegate;
 split
 |Children|
@@ -21,6 +29,14 @@ end split
 -> abstract method;
 |#AntiqueWhite|KuberspatiotemporalModel|
 :update_statistics(X, Responsibilities);
+-> share sufficient statistics;
+split
+|Children|
+:sync(s0);
+split again
+:sync(s0);
+end split
+|#AntiqueWhite|KuberspatiotemporalModel|
 :delegate;
 split
 |Children|
@@ -35,6 +51,9 @@ end split
 
 |#AntiqueWhite|KuberspatiotemporalModel|
 :maximize_component(X);
+
+|#AntiqueWhite|KuberspatiotemporalModel|
+:delegate;
 split
 |Children|
 :maximize_component(X);
