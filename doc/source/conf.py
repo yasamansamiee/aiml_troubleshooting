@@ -87,8 +87,8 @@ exclude_patterns = ['.ipynb_checkpoints']
 
 # -- Options for notebooks ---------------------------------------------------
 
-# Notebooks should never be executed. 
-# The notebooks in the source should have all output stored withing 
+# Notebooks should never be executed.
+# The notebooks in the source should have all output stored withing
 # It would be prefereable to export to rst / md but this ruins the pandas tables
 
 nbsphinx_execute = 'never'
@@ -110,3 +110,7 @@ html_logo ="_static/acceptto-gray.png"
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
+
+# Don't sort members alphabetically
+# Improves readability when using the attrs package
+autodoc_member_order = 'bysource'

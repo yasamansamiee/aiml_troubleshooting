@@ -19,5 +19,5 @@ help:
 %: Makefile
 	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
-api: 
-	sphinx-apidoc ../src/kuberspatiotemporal -o source/api
+api:
+	sphinx-apidoc ../src/kuberspatiotemporal -P  --separate -o source/api
