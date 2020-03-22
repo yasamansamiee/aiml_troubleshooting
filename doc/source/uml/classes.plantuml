@@ -1,0 +1,73 @@
+@startuml
+kuberspatiotemporal.BaseModel <|-- kuberspatiotemporal.CompoundModel
+kuberspatiotemporal.BaseModel *-- kuberspatiotemporal.CompoundModel : manages instances
+kuberspatiotemporal.BaseModel <|-- kuberspatiotemporal.KuberModel
+kuberspatiotemporal.BaseModel <|-- kuberspatiotemporal.SpatialModel
+sklearn.base.BaseEstimator <|.. kuberspatiotemporal.BaseModel
+sklearn.base.DensityMixin <|.. kuberspatiotemporal.BaseModel
+sklearn.base.TransformerMixin <|.. sklearn.preprocessing.FunctionTransformer
+sklearn.base.TransformerMixin <|.. sklearn.preprocessing.OrdinalEncoder
+sklearn.pipeline.Pipeline --* kuberspatiotemporal.BaseModel
+
+sklearn.base.BaseEstimator *-- sklearn.pipeline.Pipeline
+
+interface sklearn.base.BaseEstimator
+interface sklearn.base.DensityMixin
+interface sklearn.base.TransformerMixin
+
+class kuberspatiotemporal.BaseModel {
+    + n_dim
+    + n_components
+    + nonparametric
+    + scaling_parameter
+    + n_iterations
+    + online_learning
+    # sufficient_statistics
+    - weights
+    - priors
+    + predict()
+    + score_samples()
+    + score()
+    + fit()
+    + initialize()
+    + sync()
+    - stick_breaking()
+    - expect()
+    - batch()
+    - online()
+    - reset()
+    {abstract} update_statistics()
+    {abstract} expect_component()
+    {abstract} maximize_component()
+    {abstract} find_degenerated()
+}
+
+class kuberspatiotemporal.SpatialModel {
+    + limits
+    + min_eigval
+    - means
+    - covs
+    + update_statistics()
+    + expect_component()
+    + maximize_component()
+    + find_degenerated()
+}
+
+class kuberspatiotemporal.KuberModel {
+    + n_symbols
+    - pmf
+    + update_statistics()
+    + expect_component()
+    + maximize_component()
+    + find_degenerated()
+}
+
+class kuberspatiotemporal.CompoundModel {
+    + features : kuberspatiotemporal.BaseModel
+    + update_statistics()
+    + expect_component()
+    + maximize_component()
+    + find_degenerated()
+}
+
+@enduml

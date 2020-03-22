@@ -1,6 +1,14 @@
 Implementation
 ==============
 
+.. figure:: _static/classes.png
+   :scale: 50 %
+   :alt: Missing
+
+   Flow chart of an EM step. Note that the highlighted
+   swimlanes represent a single kuberspatiotemporal /compound
+   instance.
+
 .. figure:: _static/OnlineBatch.png
    :scale: 50 %
    :alt: Missing
@@ -11,4 +19,6 @@ Implementation
    :scale: 50 %
    :alt: Missing
 
-   Flow chart of an EM step.
+   Flow chart of an EM step. Note that the highlighted
+   swimlanes represent a single kuberspatiotemporal /compound
+   instance.
