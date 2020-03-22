@@ -1,0 +1,62 @@
+@startuml
+|BaseModel|
+start
+->         abstract method;
+|#AntiqueWhite|KuberspatiotemporalModel|
+:expect_component(X);
+:delegate;
+split
+|Children|
+:expect_component(X);
+:compute probs. for model type;
+split again
+:expect_component(X);
+:compute probs. for model type;
+end split
+|#AntiqueWhite|KuberspatiotemporalModel|
+:multiply expectations ("AND");
+|BaseModel|
+:compute responsibilities;
+:update statistics S0;
+-> abstract method;
+|#AntiqueWhite|KuberspatiotemporalModel|
+:update_statistics(X, Responsibilities);
+:delegate;
+split
+|Children|
+:update_statistics(X, Responsibilities);
+split again
+:update_statistics(X,, Responsibilities);
+end split
+|BaseModel|
+:maximize(X);
+:Update weights;
+-> abstract method;
+
+|#AntiqueWhite|KuberspatiotemporalModel|
+:maximize_component(X);
+split
+|Children|
+:maximize_component(X);
+:Update model parameters;
+split again
+:maximize_component(X);
+:Update model parameters;
+end split
+|BaseModel|
+:;
+|#AntiqueWhite|KuberspatiotemporalModel|
+-> abstract method;
+:find_degenerated();
+split
+|Children|
+:find_degenerated();
+split again
+:find_degenerated();
+end split
+|#AntiqueWhite|KuberspatiotemporalModel|
+:Join degenerated (OR);
+|BaseModel|
+:reset(degenerated);
+stop
+@enduml

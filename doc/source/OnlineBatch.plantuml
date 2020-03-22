@@ -1,0 +1,21 @@
+@startuml
+|BaseModel|
+start
+:fit(X);
+if (batch==True) then
+:batch(X);
+repeat
+:EM step for whole data set;
+repeat while (score difference < threshold OR too many iterations)
+else
+:online(X);
+:initialize sufficient statistics;
+:update_statistics(empty data set);
+repeat
+:compute update rate;
+:decrease ALL sufficient statistics;
+:EM step for single point;
+repeat while (more data to process)
+endif
+stop
+@enduml

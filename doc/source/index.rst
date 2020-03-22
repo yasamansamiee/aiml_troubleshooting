@@ -19,6 +19,7 @@ Based on `(Kimura et al. 2011)`_ by DeepMind's `Arnaud Doucet`_ and
    math_fundamentals
    classical_batch
    discussion
+   implementation
    api/modules
 
 .. _(Neal and Hinton 1998): https://www.cs.toronto.edu/~hinton/absps/emk.pdf
