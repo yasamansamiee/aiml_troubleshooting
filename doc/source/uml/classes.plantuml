@@ -1,4 +1,4 @@
-@startuml
+@startuml Class diagram
 kuberspatiotemporal.BaseModel <|-- kuberspatiotemporal.CompoundModel
 kuberspatiotemporal.BaseModel *-- kuberspatiotemporal.CompoundModel : manages instances
 kuberspatiotemporal.BaseModel <|-- kuberspatiotemporal.KuberModel
@@ -7,7 +7,11 @@ sklearn.base.BaseEstimator <|.. kuberspatiotemporal.BaseModel
 sklearn.base.DensityMixin <|.. kuberspatiotemporal.BaseModel
 sklearn.base.TransformerMixin <|.. sklearn.preprocessing.FunctionTransformer
 sklearn.base.TransformerMixin <|.. sklearn.preprocessing.OrdinalEncoder
-sklearn.pipeline.Pipeline --* kuberspatiotemporal.BaseModel
+sklearn.base.BaseEstimator <|.. sklearn.preprocessing.FunctionTransformer
+sklearn.base.BaseEstimator <|.. sklearn.preprocessing.OrdinalEncoder
+' sklearn.pipeline.Pipeline --* kuberspatiotemporal.BaseModel
+sklearn.compose.ColumnTransformer ..|> sklearn.base.BaseEstimator
+
 
 sklearn.base.BaseEstimator *-- sklearn.pipeline.Pipeline
 
