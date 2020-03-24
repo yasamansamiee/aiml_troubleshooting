@@ -21,11 +21,7 @@ from sklearn.compose import ColumnTransformer, make_column_transformer
 from sklearn.preprocessing import FunctionTransformer
 
 
-from kuberspatiotemporal import (
-    KuberModel,
-    KuberspatiotemporalModel,
-    Feature
-)
+from kuberspatiotemporal import KuberModel, CompoundModel, Feature
 
 
 @pytest.fixture(scope="class")
@@ -39,7 +35,7 @@ class TestKuberModel:
         X, ground_truth = categorical2D
         print(X.shape)
 
-        kst = KuberspatiotemporalModel(
+        kst = CompoundModel(
             n_components=2,
             n_iterations=200,
             n_dim=2,
@@ -80,7 +76,7 @@ class TestKuberModel:
         X, ground_truth = categorical2D
         print(X.shape)
 
-        kst = KuberspatiotemporalModel(
+        kst = CompoundModel(
             n_components=100,
             n_iterations=15,
             n_dim=2,
@@ -118,9 +114,8 @@ class TestKuberModel:
         assert False
 
     def test_batch_pipeline_unparam_em(self, categorical2D, logger):
-
         def trafo(x):
-            return np.array(x).reshape(-1,1)
+            return np.array(x).reshape(-1, 1)
 
         X, ground_truth = categorical2D
         print(X.shape)
@@ -131,7 +126,7 @@ class TestKuberModel:
             make_column_transformer(
                 (FunctionTransformer(trafo), "f1"), (FunctionTransformer(trafo), "f2")
             ),
-            KuberspatiotemporalModel(
+            CompoundModel(
                 n_components=100,
                 n_iterations=15,
                 n_dim=2,
@@ -150,18 +145,16 @@ class TestKuberModel:
         ground_truth.fit(X)
         logger.debug("%f", ground_truth.score(X))
 
-
         assert abs(pipeline.score(df) - ground_truth.score(X)) < 1e-3
-
 
     def test_small_scaling_parameters(self, categorical2D, logger):
 
         X, ground_truth = categorical2D
         print(X.shape)
 
-        kst = KuberspatiotemporalModel(
+        kst = CompoundModel(
             n_components=100,
-            n_iterations=20  ,
+            n_iterations=20,
             n_dim=2,
             scaling_parameter=0.25,
             nonparametric=True,
@@ -175,8 +168,7 @@ class TestKuberModel:
 
         kst.fit(X)
 
-        assert not np.any(np.isnan(kst._BaseModel__priors)) # pylint: disable=no-member
-
+        assert not np.any(np.isnan(kst._BaseModel__priors))  # pylint: disable=no-member
 
         idx = np.argsort(kst._weights)
 
@@ -189,21 +181,45 @@ class TestKuberModel:
         logger.debug("%s, %f", ground_truth._weights, ground_truth.score(X))
         logger.debug("\n%s", ground_truth.features[0].model._KuberModel__pmf[idx])
         logger.debug("\n%s", ground_truth.features[1].model._KuberModel__pmf[idx])
-        assert False
-
 
     def test_incremental(self, categorical2D, logger):
         X, ground_truth = categorical2D
         print(X.shape)
 
-        kst = KuberspatiotemporalModel(
+        kst = CompoundModel(
             n_components=100,
-            n_iterations=1  ,
+            n_iterations=2,
             n_dim=2,
-            scaling_parameter=0.5,
+            alpha=0.5,
+            online_learning=True,
+            scaling_parameter=1,
             nonparametric=True,
             features=[
                 Feature(KuberModel(n_symbols=3, nonparametric=True, n_components=100), [0]),
                 Feature(KuberModel(n_symbols=3, nonparametric=True, n_components=100), [1]),
             ],
         )
+        logger.debug("Score kst  %f, %f", kst.score(X), np.exp(kst.score(X)))
+
+        kst.fit(X)
+
+        idx = np.argsort(kst._weights)
+
+        logger.debug(
+            "Score kst %s, %f, %f", kst._weights[idx[-10:]], kst.score(X), np.exp(kst.score(X))
+        )
+
+        logger.debug("\n%s", kst.features[0].model._KuberModel__pmf[idx[-5:]])
+        logger.debug("\n%s", kst.features[1].model._KuberModel__pmf[idx[-5:]])
+
+        idx = np.argsort(ground_truth._weights)
+        logger.debug(
+            "Score ground truth %s, %f, %f",
+            ground_truth._weights,
+            ground_truth.score(X),
+            np.exp(ground_truth.score(X)),
+        )
+        logger.debug("\n%s", ground_truth.features[0].model._KuberModel__pmf[idx])
+        logger.debug("\n%s", ground_truth.features[1].model._KuberModel__pmf[idx])
+
+        assert abs(kst.score(X) - ground_truth.score(X)) < 1e-2

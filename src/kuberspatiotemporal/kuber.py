@@ -86,6 +86,15 @@ class KuberModel(BaseModel):
             # Setting them to zero allows for continued scoring
             self.__pmf[np.isnan(self.__pmf)] = 0.0
 
+            # With online learning, it can happen that probabilities exceed one
+            # Sufficient statistics are only approximated
+            if self.online_learning:
+                if not np.all(self.__pmf <= 1.0):
+                    # logger.warning('Probabilities exceed 1.0')
+                    self.__pmf = self.__pmf / np.sum(self.__pmf, axis=1)[:,np.newaxis]
+                assert np.all(self.__pmf <= 1.0)
+
+
     def update_statistics(
         # pylint: disable=bad-continuation
         self,
@@ -95,7 +104,8 @@ class KuberModel(BaseModel):
         rate: Optional[float] = None,
     ):
 
-        assert data.ndim == 2, f"Data should be 2D is {data.ndim}"
+        if data:
+            assert data.ndim == 2, f"Data should be 2D is {data.ndim}"
 
         if case == "batch":
             n_samples = data.shape[0]
@@ -104,14 +114,14 @@ class KuberModel(BaseModel):
             self._sufficient_statistics[1] = np.sum(temp, axis=0)
 
         elif case == "online":
+            n_samples = data.shape[0]
             temp = np.zeros((n_samples, self.n_components, self.n_symbols))
             temp[np.arange(n_samples), :, data.astype(int)] = responsibilities
-            self._sufficient_statistics[1] = np.sum(temp, axis=0)
+            self._sufficient_statistics[1] += rate * np.sum(temp, axis=0)
 
         elif case == "init":
-            temp = np.zeros((n_samples, self.n_components, self.n_symbols))
-            temp[np.arange(n_samples), :, data.astype(int)] = responsibilities
-            self._sufficient_statistics[1] = np.sum(temp, axis=0)
+            # P = S1 / S0 => S1 = P * SO
+            self._sufficient_statistics[1] = self.__pmf * self._sufficient_statistics[0][:, np.newaxis]
 
     def find_degenerated(self):
         # One could check for a symbol with prob 1 but I don't think that's a good idea

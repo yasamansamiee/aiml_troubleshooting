@@ -204,6 +204,8 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
             data.shape[0],
             self.n_components,
         ), f"Wrong shape: {responsibilities.shape}"
+
+
         return responsibilities, log_probabilities, log_probabilities.mean()
 
     def maximize(self):
@@ -282,47 +284,48 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
         """
 
         if self.counter == 0:
+            self.counter = 100
 
-            self._sufficient_statistics[0] = self._weights * 10
+            self._sufficient_statistics[0] = self._weights * 100
             self.update_statistics(case="init")
+            logger.debug(
+                "%f,%f",
+                np.sum(self._sufficient_statistics[0]),
+                (self.counter) ** (-self.alpha),
+            )
 
-        self.counter = 10
 
-        logger.debug(
-            "%s, %f,%f,%f",
-            self._sufficient_statistics[0] / np.sum(self._sufficient_statistics[0]),
-            np.sum(self._sufficient_statistics[0]),
-            (self.counter) ** (-self.alpha),
-            ((self.counter) ** (-self.alpha)) ** 100,
-        )
 
-        last_score = - np.infty
-        for iiteration in self.n_iterations:
+        last_score = -np.infty
+        for _ in range(self.n_iterations):
             for sample in data:
 
+                # First reduce the influence of the older samples
                 self.counter += 1
                 rate = (self.counter) ** (-self.alpha)
                 for i in self._sufficient_statistics:
                     i *= 1 - rate
 
                 # Then introduce the new sample
-                self._sufficient_statistics[0] += rate * responsibilities
-
                 responsibilities, _, score = self.expect(sample.reshape(1, -1))
-                responsibilities = responsibilities.reshape(-1)
 
-                # First reduce the influence of the older samples
-                self._sufficient_statistics[0] += rate * responsibilities
-
+                # logger.debug('shape respons. %s', responsibilities.shape)
+                self._sufficient_statistics[0] += rate * responsibilities.reshape(-1)
+                logger.debug("Estimated # samples %f (%d)", np.sum(self._sufficient_statistics[0]), self.counter)
+                # logger.debug(sample)
                 self.update_statistics(
-                    case="online", data=sample, responsibilities=responsibilities, rate=rate
+                    case="online",
+                    data=sample.reshape(1, -1),
+                    responsibilities=responsibilities,
+                    rate=rate,
                 )
 
                 self.maximize()
-                self.find_degenerated()
                 degenerated = self.find_degenerated()
                 self.reset(degenerated)
-                logger.debug("Diff: %f, %f", abs(score - last_score), score)
+
+            logger.debug("Diff: %f, %f", abs(score - last_score), score)
+            last_score = score
 
 
     def score_samples(self, data, Y=None) -> np.ndarray:

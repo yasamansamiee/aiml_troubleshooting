@@ -24,7 +24,6 @@ from .base import BaseModel
 logger = logging.getLogger(__name__)
 
 
-
 @attr.s
 class Feature:
     """Description of features (columns) in the input data."""
@@ -90,6 +89,7 @@ class CompoundModel(BaseModel):
         super().initialize()
 
         for i in self.features:
+            i.model.online_learning = self.online_learning
             if not i.model.n_components == self.n_components:
                 raise ValueError(
                     f"Features must have the same number of components as"
@@ -147,12 +147,16 @@ class CompoundModel(BaseModel):
         rate: Optional[float] = None,
     ):
 
+        # logger.debug(data)
+
         # super().update_statistics(case, data, responsibilities, rate)
 
         for feature in self.features:
             feature.model.sync(self._weights, self._sufficient_statistics[0])
 
-            feature.model.update_statistics(case, data[:, feature.columns], responsibilities, rate)
+            feature.model.update_statistics(
+                case, data[:, feature.columns] if data is not None else None, responsibilities, rate
+            )
 
             # Control:
             # pylint: disable=protected-access
