@@ -12,7 +12,7 @@ __maintainer__ = "Stefan Ulbrich"
 __email__ = "Stefan.Ulbrich@acceptto.com"
 __status__ = "alpha"
 __date__ = "2020-03-19"
-__all__ = ["KuberspatiotemporalModel"]
+__all__ = ["CompoundModel"]
 
 from typing import List, Optional
 import logging
@@ -35,7 +35,7 @@ class Feature:
 
 
 @attr.s
-class KuberspatiotemporalModel(BaseModel):
+class CompoundModel(BaseModel):
     """
     Composed heterogenous Dirichlet process mixture model.
 
@@ -76,7 +76,7 @@ class KuberspatiotemporalModel(BaseModel):
                 ("ct", ct),
                 (
                     "kst",
-                    KuberspatiotemporalModel(
+                    CompoundModel(
                         features=[Feature(TemporalModel, [1]), Feature(SpatialModel, [2, 3])]
                     ),
                 ),

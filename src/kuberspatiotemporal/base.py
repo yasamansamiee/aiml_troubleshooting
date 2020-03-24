@@ -62,7 +62,9 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
     nonparametric: bool = attr.ib(default=True)
 
     scaling_parameter: float = attr.ib(default=2.0)
-    alpha: float = attr.ib(default=0.75) # FIXME rename .. alpha is used twice in the origninal paper
+    alpha: float = attr.ib(
+        default=0.75
+    )  # FIXME rename .. alpha is used twice in the origninal paper
     random_reset: bool = attr.ib(default=False)
     online_learning: bool = attr.ib(default=False)
     n_iterations: int = attr.ib(default=100)
@@ -98,7 +100,6 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
         Child classes *should* call this class.
         """
 
-
         self._sufficient_statistics += [
             np.zeros((self.n_components,)),
         ]
@@ -111,7 +112,7 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
         else:
             self._weights = self.stick_breaking()
 
-    def sync(self, weights: np.ndarray,s0: np.ndarray):
+    def sync(self, w_: np.ndarray, s0_: np.ndarray):
         """
         Sync estimators in a compound.
 
@@ -120,8 +121,8 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
         weights : np.ndarray
             Weights are protected and therefore be shared.
         """
-        self._weights = weights  # not necessary to copy
-        self._sufficient_statistics[0] = s0
+        self._weights = w_  # not necessary to copy
+        self._sufficient_statistics[0] = s0_
 
     def stick_breaking(self) -> np.ndarray:
         """
@@ -156,7 +157,7 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
             [description]
         """
         responsibilities, _, _ = self.expect(data)
-        return np.argmax(responsibilities, axis=1)#, responsibilities
+        return np.argmax(responsibilities, axis=1)  # , responsibilities
 
     def expect(self, data: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         r"""
@@ -192,6 +193,7 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
 
         """
         weighted_prob = self.expect_components(data) * self._weights[np.newaxis, :]
+        # logger.debug(weighted_prob)
         responsibilities = weighted_prob / np.sum(weighted_prob, axis=1)[:, np.newaxis]
         log_probabilities = np.log(np.sum(weighted_prob, axis=1))
 
@@ -220,7 +222,11 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
                     - 1
                     + np.flip(np.cumsum(np.flip(self._sufficient_statistics[0])))
                 )
-                self.__priors[np.isnan(self.__priors)] = 0.0
+                # https://stackoverflow.com/a/16244044
+                # Trick by Heinzl2014
+                self.__priors[np.argmax(self.__priors >= 1.0) :] = 1.0
+
+                # self.__priors[np.isnan(self.__priors)] = 0.0
 
             self._weights = self.stick_breaking()
 
@@ -243,11 +249,10 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
             if i % 10 == 0:
                 logger.info("Step %d/%d", i, self.n_iterations)
 
-
             if not data.shape[1] == self.n_dim:
                 raise ValueError(f"Wrong number input dimensions: {data.shape[1]} != {self.n_dim}")
 
-            responsibilities, _, score = self.expect(data)
+            responsibilities, temp, score = self.expect(data)
 
             # Update S_0
             self._sufficient_statistics[0] = np.sum(
@@ -255,13 +260,10 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
             )
 
             self.update_statistics(case="batch", data=data, responsibilities=responsibilities)
-
-            logger.debug(self._weights)
-            logger.debug(self.__priors)
-            logger.debug("Diff: %f, %f", abs(score - last_score), score )
+            logger.debug("Diff: %f, %f", abs(score - last_score), score)
             # Check whether to stop
             if abs(score - last_score) < 1e-3:  # self.tol:
-                logger.info("Converged after %d steps", i+1)
+                logger.info("Converged after %d steps", i + 1)
                 # self.converged_ = True
                 break
             last_score = score
@@ -306,7 +308,6 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
 
                 responsibilities, _ = self.expect(sample.reshape(1, -1))
                 responsibilities = responsibilities.reshape(-1)
-
 
                 # First reduce the influence of the older samples
                 self._sufficient_statistics[0] += rate * responsibilities
@@ -361,7 +362,7 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
 
     @abstractmethod
     def update_statistics(
-        # pylint: disable=bad-continuation,unused-argument
+        # pylint: disable=bad-continuation
         self,
         case: str,
         data: Optional[np.ndarray] = None,
@@ -387,10 +388,6 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
         rate : Optional[float], optional
             [description], by default None
         """
-
-
-
-
 
     def predict_proba(self, X: np.ndarray) -> np.ndarray:
         """

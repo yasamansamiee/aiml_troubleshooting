@@ -82,6 +82,9 @@ class KuberModel(BaseModel):
             self.__pmf = (
                 self._sufficient_statistics[1] / self._sufficient_statistics[0][:, np.newaxis]
             )
+            # Disabled componentes lead to a zero by zero division.
+            # Setting them to zero allows for continued scoring
+            self.__pmf[np.isnan(self.__pmf)] = 0.0
 
     def update_statistics(
         # pylint: disable=bad-continuation
