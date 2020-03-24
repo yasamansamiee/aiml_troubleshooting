@@ -268,7 +268,8 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
                 break
             last_score = score
             self.maximize()
-            self.find_degenerated()
+            degenerated = self.find_degenerated()
+            self.reset(degenerated)
 
     def online(self, data: np.ndarray):
         """
@@ -295,7 +296,8 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
             ((self.counter) ** (-self.alpha)) ** 100,
         )
 
-        for i in self.n_iterations:
+        last_score = - np.infty
+        for iiteration in self.n_iterations:
             for sample in data:
 
                 self.counter += 1
@@ -306,7 +308,7 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
                 # Then introduce the new sample
                 self._sufficient_statistics[0] += rate * responsibilities
 
-                responsibilities, _ = self.expect(sample.reshape(1, -1))
+                responsibilities, _, score = self.expect(sample.reshape(1, -1))
                 responsibilities = responsibilities.reshape(-1)
 
                 # First reduce the influence of the older samples
@@ -318,6 +320,10 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
 
                 self.maximize()
                 self.find_degenerated()
+                degenerated = self.find_degenerated()
+                self.reset(degenerated)
+                logger.debug("Diff: %f, %f", abs(score - last_score), score)
+
 
     def score_samples(self, data, Y=None) -> np.ndarray:
         return self.expect(data)[1]
