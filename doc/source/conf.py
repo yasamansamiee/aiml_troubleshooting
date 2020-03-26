@@ -113,4 +113,5 @@ html_static_path = ['_static']
 
 # Don't sort members alphabetically
 # Improves readability when using the attrs package
+# https://stackoverflow.com/questions/37209921/python-how-not-to-sort-sphinx-output-in-alphabetical-order
 autodoc_member_order = 'bysource'

@@ -148,16 +148,16 @@ def make_ellipses(gmm: "GaussianMixtureModel", ax, min_weight=0.0):
         if n == gmm.n_components:
             break
 
-        if gmm.weights[n] < min_weight:
+        if gmm._weights[n] < min_weight:
             continue
-        covariances = gmm.covs[n]
+        covariances = gmm._SpatialModel__covs[n]
 
         v, w = np.linalg.eigh(covariances)
         u = w[0] / np.linalg.norm(w[0])
         angle = np.arctan2(u[1], u[0])
         angle = 180 * angle / np.pi  # convert to degrees
         v = 2.0 * np.sqrt(2.0) * np.sqrt(v)
-        ell = mpl.patches.Ellipse(gmm.means[n], v[0], v[1], 180 + angle, color=color)
+        ell = mpl.patches.Ellipse(gmm._SpatialModel__means[n], v[0], v[1], 180 + angle, color=color)
         ell.set_clip_box(ax.bbox)
         ell.set_alpha(0.5)
         ax.add_artist(ell)

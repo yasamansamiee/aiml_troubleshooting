@@ -224,9 +224,17 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
                     - 1
                     + np.flip(np.cumsum(np.flip(self._sufficient_statistics[0])))
                 )
-                # https://stackoverflow.com/a/16244044
-                # Trick by Heinzl2014
-                self.__priors[np.argmax(self.__priors >= 1.0) :] = 1.0
+                # Trick by Heinzl2014: find the first entry >= 1, then set this and all succesive
+                # elements to 1 too.
+                # See this answer https://stackoverflow.com/a/16244044. Warning! the argmax solution
+                # does not work, if there is no element >= 1!!
+
+
+                # logger.warning(self.__priors)
+                idx = np.where(self.__priors >= 1.0)[0]
+                if idx.size>0:
+                    self.__priors[idx[0]:]=1.0
+                # logger.debug(self.__priors)
 
                 # self.__priors[np.isnan(self.__priors)] = 0.0
 

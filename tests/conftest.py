@@ -53,22 +53,22 @@ def heterogeneous_mixture(n_draws: int):
     cluster_std = 0.005
     n_features = 2
 
-    means = np.random.random(n_clusters, n_features)
+    means = np.random.random((n_clusters, n_features))
     covs = [
         make_spd_matrix(n_features) * np.abs(np.random.randn(1)) * cluster_std
         for i in range(n_clusters)
     ]
     mvn = [multivariate_normal(mean=means[i], cov=covs[i],) for i in range(n_clusters)]
     rvs_x = np.array([mvn[i].rvs(size=n_draws) for i in range(n_clusters)])
-
+    rvs_x = np.swapaxes(rvs_x, 0, 1)
     X2 = rvs_x[idx != 0]
 
-    return np.hstack((X2, X1)), pi, means, covs, pm11, pm12, pm21, pm22
+    return np.hstack((X2, X1)), pi, means, np.array(covs), pm11, pm12, pm21, pm22
 
 
 @pytest.fixture(scope="module")
 def heterogeneous():
-    X, pi, means, covs, pm11, pm12, pm21, pm22 = categorical_mixture(1000)
+    X, pi, means, covs, pm11, pm12, pm21, pm22 = heterogeneous_mixture(1000)
 
     df = pd.DataFrame(X, columns=["x", "y", "f1", "f2"])
 
@@ -85,7 +85,7 @@ def heterogeneous():
         scaling_parameter=1.1,
         nonparametric=True,
         features=[
-            Feature(SpatialModel(n_dim=2),[0,1]),
+            Feature(SpatialModel(n_dim=2,  n_components=2),[0,1]),
             Feature(KuberModel(n_symbols=3, nonparametric=True, n_components=2), [2]),
             Feature(KuberModel(n_symbols=3, nonparametric=True, n_components=2), [3]),
         ],
@@ -100,7 +100,7 @@ def heterogeneous():
 
 
 
-    return df, make_pipeline(ct,ground_truth)
+    return df, make_pipeline(ct,ground_truth), ground_truth
 
 
 @pytest.fixture(scope="module")
@@ -109,7 +109,7 @@ def spatial():
     ground_truth = SpatialModel(n_dim=2, n_components=2)
     ground_truth._SpatialModel__means = means
     ground_truth._SpatialModel__covs = covs
-    return X[['x','y']], ground_truth
+    return X[:,:2], ground_truth
 
 
 @pytest.fixture(scope="module")

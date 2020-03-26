@@ -29,11 +29,10 @@ def synthetic_data():
     return None
 
 
-class TestKuberModel:
+class TestKuberspatialModel:
     def test_batch_finite_em(self, heterogeneous, logger):
 
-        X, ground_truth = heterogeneous
-        print(X.shape)
+        X, gt_pipeline, ground_truth = heterogeneous
 
         kst = CompoundModel(
             n_components=2,
@@ -41,85 +40,109 @@ class TestKuberModel:
             n_iterations=200,
             scaling_parameter=1.1,
             nonparametric=False,
+            online_learning=False,
             features=[
-                Feature(SpatialModel(n_dim=2), [0, 1]),
+                Feature(SpatialModel(n_dim=2, n_components=2), [0, 1]),
                 Feature(KuberModel(n_symbols=3, nonparametric=True, n_components=2), [2]),
                 Feature(KuberModel(n_symbols=3, nonparametric=True, n_components=2), [3]),
             ],
         )
 
+        pipeline = make_pipeline(
+            make_column_transformer(
+                (FunctionTransformer(lambda x: np.array(x).reshape(-1, 1)), "x"),
+                (FunctionTransformer(lambda x: np.array(x).reshape(-1, 1)), "y"),
+                (FunctionTransformer(lambda x: np.array(x).reshape(-1, 1)), "f1"),
+                (FunctionTransformer(lambda x: np.array(x).reshape(-1, 1)), "f2"),
+            ),
+            kst,
+        )
 
-        logger.debug(" %f, %f", kst.score(X), np.exp(kst.score(X)))
 
-        kst.fit(X)
+        pipeline.fit(X)
 
         idx = np.argsort(kst._weights)
 
-        logger.debug("%s, %f", kst._weights[idx[-10:]], kst.score(X))
+        logger.debug("%s, %f", kst._weights[idx[-10:]], pipeline.score(X), np.exp(pipeline.score(X)))
 
-        logger.debug("\n%s", kst.features[0].model._KuberModel__pmf[idx[-5:]])
+        logger.debug("\n%s", kst.features[0].model._SpatialModel__means[idx[-5:]])
         logger.debug("\n%s", kst.features[1].model._KuberModel__pmf[idx[-5:]])
+        logger.debug("\n%s", kst.features[2].model._KuberModel__pmf[idx[-5:]])
 
         idx = np.argsort(ground_truth._weights)
 
-        logger.debug("%s, %f", ground_truth._weights, ground_truth.score(X))
-        logger.debug("\n%s", ground_truth.features[0].model._KuberModel__pmf[idx])
+        logger.debug("%s, %f", ground_truth._weights, gt_pipeline.score(X), np.exp(gt_pipeline.score(X)))
+        logger.debug("\n%s", ground_truth.features[0].model._SpatialModel__means[idx[-5:]])
         logger.debug("\n%s", ground_truth.features[1].model._KuberModel__pmf[idx])
+        logger.debug("\n%s", ground_truth.features[2].model._KuberModel__pmf[idx])
 
         # ground_truth.fit(X)
-        logger.debug("%f, %f", ground_truth.score(X), np.exp(ground_truth.score(X)))
+        logger.debug("%f, %f", gt_pipeline.score(X), np.exp(gt_pipeline.score(X)))
 
         # for i in range(50):
         #     print(i, kst.features[0].model._KuberModel__pmf)
-        assert abs(kst.score(X) - ground_truth.score(X)) < 1e-3
+        assert abs(pipeline.score(X) - gt_pipeline.score(X)) < 1e-3
 
     def test_batch_unparam_em(self, heterogeneous, logger):
 
-        X, ground_truth = heterogeneous
-        print(X.shape)
+
+        X, gt_pipeline, ground_truth = heterogeneous
 
         kst = CompoundModel(
             n_components=100,
             n_dim=4,
             n_iterations=200,
-            scaling_parameter=1.1,
+            scaling_parameter=10,
             nonparametric=True,
+            online_learning=False,
             features=[
-                Feature(SpatialModel(n_dim=2), [0, 1]),
-                Feature(KuberModel(n_symbols=3, nonparametric=True, n_components=2), [2]),
-                Feature(KuberModel(n_symbols=3, nonparametric=True, n_components=2), [3]),
+                Feature(SpatialModel(n_dim=2, n_components=100, box=0.1), [0, 1]),
+                Feature(KuberModel(n_symbols=3, nonparametric=True, n_components=100), [2]),
+                Feature(KuberModel(n_symbols=3, nonparametric=True, n_components=100), [3]),
             ],
         )
 
-        logger.debug(" %f, %f", kst.score(X), np.exp(kst.score(X)))
+        pipeline = make_pipeline(
+            make_column_transformer(
+                (FunctionTransformer(lambda x: np.array(x).reshape(-1, 1)), "x"),
+                (FunctionTransformer(lambda x: np.array(x).reshape(-1, 1)), "y"),
+                (FunctionTransformer(lambda x: np.array(x).reshape(-1, 1)), "f1"),
+                (FunctionTransformer(lambda x: np.array(x).reshape(-1, 1)), "f2"),
+            ),
+            kst,
+        )
 
-        kst.fit(X)
+
+        pipeline.fit(X)
+
+
+        # kst.features[0].model.box = .4
 
         idx = np.argsort(kst._weights)
 
-        logger.debug("%s, %f", kst._weights[idx[-10:]], kst.score(X))
+        logger.debug("%s, %f, %f, %f", kst._weights[idx[-10:]], np.sum(kst._weights),  pipeline.score(X), np.exp(pipeline.score(X)))
 
-        logger.debug("\n%s", kst.features[0].model._KuberModel__pmf[idx[-5:]])
+        logger.debug("\n%s", kst.features[0].model._SpatialModel__means[idx[-5:]])
         logger.debug("\n%s", kst.features[1].model._KuberModel__pmf[idx[-5:]])
+        logger.debug("\n%s", kst.features[2].model._KuberModel__pmf[idx[-5:]])
 
         idx = np.argsort(ground_truth._weights)
-
-        logger.debug("%s, %f", ground_truth._weights, ground_truth.score(X))
-        logger.debug("\n%s", ground_truth.features[0].model._KuberModel__pmf[idx])
+        ground_truth.features[0].model.box = .1
+        logger.debug("%s, %f, %f", ground_truth._weights, gt_pipeline.score(X), np.exp(gt_pipeline.score(X)))
+        logger.debug("\n%s", ground_truth.features[0].model._SpatialModel__means[idx[-5:]])
         logger.debug("\n%s", ground_truth.features[1].model._KuberModel__pmf[idx])
+        logger.debug("\n%s", ground_truth.features[2].model._KuberModel__pmf[idx])
 
         # ground_truth.fit(X)
-        logger.debug("%f", ground_truth.score(X))
+        logger.debug("%f, %f", gt_pipeline.score(X), np.exp(gt_pipeline.score(X)))
 
         # for i in range(50):
-        #     print(i, kst.features[0].model._KuberModel__pmf)=
-        assert abs(kst.score(X) - ground_truth.score(X)) < 1e-3
-        assert False
+        #     print(i, kst.features[0].model._KuberModel__pmf)
+        assert abs(pipeline.score(X) - gt_pipeline.score(X)) < 1e-3
 
     def test_small_scaling_parameters(self, heterogeneous, logger):
 
-        X, ground_truth = heterogeneous
-        print(X.shape)
+        X, gt_pipeline, ground_truth = heterogeneous
 
         kst = CompoundModel(
             n_components=100,
@@ -127,70 +150,100 @@ class TestKuberModel:
             n_iterations=200,
             scaling_parameter=0.15,
             nonparametric=True,
+            online_learning=False,
             features=[
-                Feature(SpatialModel(n_dim=2), [0, 1]),
-                Feature(KuberModel(n_symbols=3, nonparametric=True, n_components=2), [2]),
-                Feature(KuberModel(n_symbols=3, nonparametric=True, n_components=2), [3]),
+                Feature(SpatialModel(n_dim=2, n_components=100), [0, 1]),
+                Feature(KuberModel(n_symbols=3, nonparametric=True, n_components=100), [2]),
+                Feature(KuberModel(n_symbols=3, nonparametric=True, n_components=100), [3]),
             ],
         )
 
-        logger.debug(" %f, %f", kst.score(X), np.exp(kst.score(X)))
+        pipeline = make_pipeline(
+            make_column_transformer(
+                (FunctionTransformer(lambda x: np.array(x).reshape(-1, 1)), "x"),
+                (FunctionTransformer(lambda x: np.array(x).reshape(-1, 1)), "y"),
+                (FunctionTransformer(lambda x: np.array(x).reshape(-1, 1)), "f1"),
+                (FunctionTransformer(lambda x: np.array(x).reshape(-1, 1)), "f2"),
+            ),
+            kst,
+        )
 
-        kst.fit(X)
 
-        assert not np.any(np.isnan(kst._BaseModel__priors))  # pylint: disable=no-member
+        pipeline.fit(X)
 
         idx = np.argsort(kst._weights)
 
-        logger.debug("%s, %f", kst._weights[idx[-10:]], kst.score(X))
+        logger.debug("%s, %f", kst._weights[idx[-10:]], pipeline.score(X))
 
-        logger.debug("\n%s", kst.features[0].model._KuberModel__pmf[idx[-5:]])
+        logger.debug("\n%s", kst.features[0].model._SpatialModel__means[idx[-5:]])
         logger.debug("\n%s", kst.features[1].model._KuberModel__pmf[idx[-5:]])
+        logger.debug("\n%s", kst.features[2].model._KuberModel__pmf[idx[-5:]])
 
         idx = np.argsort(ground_truth._weights)
-        logger.debug("%s, %f", ground_truth._weights, ground_truth.score(X))
-        logger.debug("\n%s", ground_truth.features[0].model._KuberModel__pmf[idx])
+
+        logger.debug("%s, %f", ground_truth._weights, gt_pipeline.score(X))
+        logger.debug("\n%s", ground_truth.features[0].model._SpatialModel__means[idx[-5:]])
         logger.debug("\n%s", ground_truth.features[1].model._KuberModel__pmf[idx])
+        logger.debug("\n%s", ground_truth.features[2].model._KuberModel__pmf[idx])
+
+        # ground_truth.fit(X)
+        logger.debug("%f, %f", gt_pipeline.score(X), np.exp(gt_pipeline.score(X)))
+
+        # for i in range(50):
+        #     print(i, kst.features[0].model._KuberModel__pmf)
+        assert abs(pipeline.score(X) - gt_pipeline.score(X)) < 1e-3
 
     def test_incremental(self, heterogeneous, logger):
-        X, ground_truth = heterogeneous
-        print(X.shape)
+        X, gt_pipeline, ground_truth = heterogeneous
 
         kst = CompoundModel(
             n_components=100,
             n_dim=4,
-            n_iterations=200,
-            scaling_parameter=0.15,
             alpha=0.5,
-            online_learning=True,
+            n_iterations=1,
+            scaling_parameter=0.5,
             nonparametric=True,
+            online_learning=False,
             features=[
-                Feature(SpatialModel(n_dim=2), [0, 1]),
-                Feature(KuberModel(n_symbols=3, nonparametric=True, n_components=2), [2]),
-                Feature(KuberModel(n_symbols=3, nonparametric=True, n_components=2), [3]),
+                Feature(SpatialModel(n_dim=2, n_components=100), [0, 1]),
+                Feature(KuberModel(n_symbols=3, nonparametric=True, n_components=100), [2]),
+                Feature(KuberModel(n_symbols=3, nonparametric=True, n_components=100), [3]),
             ],
         )
-        logger.debug("Score kst  %f, %f", kst.score(X), np.exp(kst.score(X)))
 
-        kst.fit(X)
+        pipeline = make_pipeline(
+            make_column_transformer(
+                (FunctionTransformer(lambda x: np.array(x).reshape(-1, 1)), "x"),
+                (FunctionTransformer(lambda x: np.array(x).reshape(-1, 1)), "y"),
+                (FunctionTransformer(lambda x: np.array(x).reshape(-1, 1)), "f1"),
+                (FunctionTransformer(lambda x: np.array(x).reshape(-1, 1)), "f2"),
+            ),
+            kst,
+        )
+
+
+        pipeline.fit(X)
 
         idx = np.argsort(kst._weights)
 
-        logger.debug(
-            "Score kst %s, %f, %f", kst._weights[idx[-10:]], kst.score(X), np.exp(kst.score(X))
-        )
+        logger.debug("%s, %f", kst._weights[idx[-10:]], pipeline.score(X))
 
-        logger.debug("\n%s", kst.features[0].model._KuberModel__pmf[idx[-5:]])
+        logger.debug("\n%s", kst.features[0].model._SpatialModel__means[idx[-5:]])
         logger.debug("\n%s", kst.features[1].model._KuberModel__pmf[idx[-5:]])
+        logger.debug("\n%s", kst.features[2].model._KuberModel__pmf[idx[-5:]])
 
         idx = np.argsort(ground_truth._weights)
-        logger.debug(
-            "Score ground truth %s, %f, %f",
-            ground_truth._weights,
-            ground_truth.score(X),
-            np.exp(ground_truth.score(X)),
-        )
-        logger.debug("\n%s", ground_truth.features[0].model._KuberModel__pmf[idx])
-        logger.debug("\n%s", ground_truth.features[1].model._KuberModel__pmf[idx])
 
-        assert abs(kst.score(X) - ground_truth.score(X)) < 1e-2
+        logger.debug("%s, %f", ground_truth._weights, gt_pipeline.score(X))
+        logger.debug("\n%s", ground_truth.features[0].model._SpatialModel__means[idx[-5:]])
+        logger.debug("\n%s", ground_truth.features[1].model._KuberModel__pmf[idx])
+        logger.debug("\n%s", ground_truth.features[2].model._KuberModel__pmf[idx])
+
+        # ground_truth.fit(X)
+        logger.debug("%f, %f", gt_pipeline.score(X), np.exp(gt_pipeline.score(X)))
+
+        # for i in range(50):
+        #     print(i, kst.features[0].model._KuberModel__pmf)
+        assert abs(pipeline.score(X) - gt_pipeline.score(X)) < 1e-3
+
+

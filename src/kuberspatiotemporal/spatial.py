@@ -24,7 +24,12 @@ import attr
 from .tools import repr_ndarray, cholesky_precisions
 from .base import BaseModel
 
+from .cumulative import boxed_cdf
+
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+print(__name__)
+
 
 @attr.s
 class SpatialModel(BaseModel):
@@ -55,7 +60,8 @@ class SpatialModel(BaseModel):
     limits: Optional[Tuple[np.ndarray, np.ndarray]] = attr.ib(
         default=None
     )  # TODO should have a validator
-    min_eigval: float = attr.ib(default=1e-2)
+    min_eigval: float = attr.ib(default=1e-5)
+    box: Optional[float] = attr.ib(default=None)
 
     # Internal state variables
     __means: Optional[np.ndarray] = attr.ib(default=None, repr=repr_ndarray)
@@ -66,7 +72,7 @@ class SpatialModel(BaseModel):
     def initialize(self):
 
         super().initialize()
-        
+
         if self.limits is None:
             self.limits = (np.zeros(self.n_dim), np.ones(self.n_dim))
 
@@ -77,9 +83,7 @@ class SpatialModel(BaseModel):
 
         self.__covs = (
             np.tile(np.identity(self.n_dim), (self.n_components, 1, 1))
-            * np.random.rand(self.n_components)[
-                :, np.newaxis, np.newaxis
-            ]  # (1/self.n_components)
+            * np.random.rand(self.n_components)[:, np.newaxis, np.newaxis]  # (1/self.n_components)
             * 10
         )
         self._sufficient_statistics += [
@@ -113,7 +117,18 @@ class SpatialModel(BaseModel):
 
             probabilities = np.exp(-0.5 * (self.n_dim * np.log(2 * np.pi) + log_prob) + log_det)
 
-        return probabilities
+        if not self.box is None:
+
+            a=  np.array(
+                [
+                    weight * boxed_cdf(data, self.box, mean, sigma, None, 1e-5, 1e-5)
+                    for sigma, mean, weight in zip(self.__covs, self.__means, self._weights)
+                ]
+            )
+            logger.debug(a.shape)
+            return a.T
+        else:
+            return probabilities
 
     def update_statistics(
         # pylint: disable=bad-continuation
@@ -127,7 +142,8 @@ class SpatialModel(BaseModel):
         super().update_statistics(case, data, responsibilities, rate)
 
         if case == "batch":
-            assert data.shape == (self.n_dim)
+            n_samples = responsibilities.shape[0]
+            assert data.shape == (n_samples, self.n_dim)
 
             self._sufficient_statistics[1] = np.sum(
                 responsibilities[:, :, np.newaxis]
@@ -143,16 +159,16 @@ class SpatialModel(BaseModel):
                 axis=0,
             )
         elif case == "online":
-            assert data.shape == (self.n_dim)
+            assert data.shape == (1, self.n_dim)
 
             self._sufficient_statistics[1] += (
-                rate * responsibilities[:, np.newaxis] * data[np.newaxis, :]
+                rate * responsibilities.reshape(-1)[:, np.newaxis] * data.reshape(-1)[np.newaxis, :]
             )
 
             self._sufficient_statistics[2] += (
                 rate
-                * responsibilities[:, np.newaxis, np.newaxis]
-                * np.einsum("i,j->ij", data, data)[np.newaxis, :, :]
+                * responsibilities.reshape(-1)[:, np.newaxis, np.newaxis]
+                * np.einsum("i,j->ij", data.reshape(-1), data.reshape(-1))[np.newaxis, :, :]
             )
         elif case == "init":
             self._sufficient_statistics[1] = (
@@ -194,6 +210,30 @@ class SpatialModel(BaseModel):
     def find_degenerated(self) -> np.ndarray:
         """Remove irrelevant components"""
 
+        # https://www.visiondummy.com/2014/04/geometric-interpretation-covariance-matrix/
         self.__covs[np.any(np.isnan(self.__covs), axis=1)] = 0
         degenerated = np.min(np.linalg.eigvals(self.__covs), axis=1) < self.min_eigval
-        return np.sum(degenerated)
+        print(np.sum(degenerated))
+        return degenerated
+
+    def score_samples(self, data, y=None) -> np.ndarray:
+
+        if not self.box is None:
+
+            return np.sum(
+                [
+                    weight * boxed_cdf(data, self.box, mean, sigma, None, 1e-5, 1e-5)
+                    for sigma, mean, weight in zip(self.__covs, self.__means, self._weights)
+                ]
+            )
+        else:
+            return super(data, y).score_samples
+
+    def score(self, data, y=None) -> float:
+        if not self.box is None:
+
+            return self.score_samples(data).mean()
+        else:
+            return super().score(data, y)
+
+

@@ -24,27 +24,30 @@ from sklearn.preprocessing import FunctionTransformer
 from kuberspatiotemporal import CompoundModel, Feature, SpatialModel
 
 
-class TestSpacialModel:
+class TestSpatialModel:
     def test_batch_finite_em(self, spatial, logger):
 
         X, ground_truth = spatial
         print(X.shape)
 
-        model = SpatialModel(n_dim=2, nonparametric=False, n_iterations=200, n_components=2)
+        model = SpatialModel(n_dim=2, min_eigval=1e-5, nonparametric=False, n_iterations=200, n_components=2)
 
 
-        logger.debug(" %f, %f", model.score(X), np.exp(model.score(X)))
+        # logger.debug(" %f, %f", model.score(X), np.exp(model.score(X)))
 
         model.fit(X)
 
         idx = np.argsort(model._weights)
         logger.debug("%s, %f", model._weights[idx[-10:]], model.score(X))
         logger.debug("\n%s", model._SpatialModel__means[idx[-5:]])
+        logger.debug("\n%s", model._SpatialModel__covs[idx[-5:]])
 
         idx = np.argsort(ground_truth._weights)
 
         logger.debug("%s, %f", ground_truth._weights, ground_truth.score(X))
         logger.debug("\n%s", ground_truth._SpatialModel__means[idx])
+        logger.debug("\n%s", ground_truth._SpatialModel__covs[idx])
+
 
         # ground_truth.fit(X)
         logger.debug("%f, %f", ground_truth.score(X), np.exp(ground_truth.score(X)))
@@ -59,7 +62,7 @@ class TestSpacialModel:
         X, ground_truth = spatial
         print(X.shape)
 
-        model = SpatialModel(n_dim=2, nonparametric=True, scaling_parameter=1.5, n_iterations=200)
+        model = SpatialModel(n_dim=2, nonparametric=True, scaling_parameter=2, n_iterations=200, min_eigval=1e-5)
 
 
         logger.debug(" %f, %f", model.score(X), np.exp(model.score(X)))
@@ -89,13 +92,12 @@ class TestSpacialModel:
         X, ground_truth = spatial
         print(X.shape)
 
-        model = SpatialModel(n_dim=2, nonparametric=True, scaling_parameter=0.15, n_iterations=200)
+        model = SpatialModel(n_dim=2, nonparametric=True, scaling_parameter=0.15, n_iterations=200, min_eigval=1e-5)
 
         logger.debug(" %f, %f", model.score(X), np.exp(model.score(X)))
 
         model.fit(X)
 
-        assert not np.any(np.isnan(model._BaseModel__priors))  # pylint: disable=no-member
 
         idx = np.argsort(model._weights)
         logger.debug("%s, %f", model._weights[idx[-10:]], model.score(X))
@@ -105,12 +107,14 @@ class TestSpacialModel:
 
         logger.debug("%s, %f", ground_truth._weights, ground_truth.score(X))
         logger.debug("\n%s", ground_truth._SpatialModel__means[idx])
+        assert abs(model.score(X) - ground_truth.score(X)) < 1e-3
+        assert False
 
     def test_incremental(self, spatial, logger):
         X, ground_truth = spatial
         print(X.shape)
 
-        model = SpatialModel(n_dim=2, nonparametric=True, scaling_parameter=0.15, n_iterations=200, online_learning=True)
+        model = SpatialModel(n_dim=2, nonparametric=True, scaling_parameter=2, n_iterations=1, online_learning=True)
         logger.debug("Score model  %f, %f", model.score(X), np.exp(model.score(X)))
 
         model.fit(X)

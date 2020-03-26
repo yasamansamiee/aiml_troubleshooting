@@ -12,5 +12,11 @@
     "autoDocstring.guessTypes": true,
     "autoDocstring.includeExtendedSummary": true,
     "autoDocstring.startOnNewLine": true,
-    "files.trimTrailingWhitespace": true
+    "files.trimTrailingWhitespace": true,
+    "python.testing.pytestArgs": [
+        "tests"
+    ],
+    "python.testing.unittestEnabled": false,
+    "python.testing.nosetestsEnabled": false,
+    "python.testing.pytestEnabled": true
 }

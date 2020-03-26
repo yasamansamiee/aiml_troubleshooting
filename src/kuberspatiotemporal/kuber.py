@@ -104,16 +104,16 @@ class KuberModel(BaseModel):
         rate: Optional[float] = None,
     ):
 
-        if data:
-            assert data.ndim == 2, f"Data should be 2D is {data.ndim}"
 
         if case == "batch":
+            assert data.ndim == 2, f"Data should be 2D is {data.ndim}"
             n_samples = data.shape[0]
             temp = np.zeros((n_samples, self.n_components, self.n_symbols))
             temp[np.arange(n_samples), :, data.reshape(-1).astype(int)] = responsibilities
             self._sufficient_statistics[1] = np.sum(temp, axis=0)
 
         elif case == "online":
+            assert data.ndim == 2, f"Data should be 2D is {data.ndim}"
             n_samples = data.shape[0]
             temp = np.zeros((n_samples, self.n_components, self.n_symbols))
             temp[np.arange(n_samples), :, data.astype(int)] = responsibilities
