@@ -18,6 +18,8 @@ from typing import Optional, Tuple
 import logging
 
 # from sklearn.datasets import make_spd_matrix
+from scipy.stats import multinomial, multivariate_normal
+
 import numpy as np
 import attr
 
@@ -83,8 +85,8 @@ class SpatialModel(BaseModel):
 
         self.__covs = (
             np.tile(np.identity(self.n_dim), (self.n_components, 1, 1))
-            * np.random.rand(self.n_components)[:, np.newaxis, np.newaxis]  # (1/self.n_components)
-            * 10
+            # * np.random.rand(self.n_components)[:, np.newaxis, np.newaxis]  # (1/self.n_components)
+            * 0.005
         )
         self._sufficient_statistics += [
             np.zeros((self.n_components, self.n_dim)),
@@ -235,5 +237,18 @@ class SpatialModel(BaseModel):
             return self.score_samples(data).mean()
         else:
             return super().score(data, y)
+
+
+    def rvs(self,n_samples: int=1, idx:Optional[np.ndarray]=None) -> np.ndarray:
+
+        if idx is None:
+            idx = multinomial(1, self._weights).rvs(size=n_samples)
+
+        mvn = [multivariate_normal(mean=self.__means[i], cov=self.__covs[i],) for i in range(self.n_components)]
+        rvs = np.array([mvn[i].rvs(size=n_samples) for i in range(self.n_components)])
+        rvs = np.swapaxes(rvs, 0, 1)
+
+        return rvs[idx != 0].reshape(-1,self.n_dim)
+
 
 

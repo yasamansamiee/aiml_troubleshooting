@@ -108,7 +108,11 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
         self.__priors[-1] = 1.0  # truncate
 
         if not self.nonparametric:
-            self._weights = np.ones((self.n_components,)) * 1.0 / self.n_components
+            self._weights = np.random.random(self.n_components)
+            self._weights /= np.sum(self._weights)
+            logger.debug(self._weights)
+            logger.debug(np.sum(self._weights))
+            # self._weights = np.ones((self.n_components,)) * 1.0 / self.n_components
         else:
             self._weights = self.stick_breaking()
 
@@ -194,7 +198,10 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
         """
         weighted_prob = self.expect_components(data) * self._weights[np.newaxis, :]
         # logger.debug(weighted_prob)
-        responsibilities = weighted_prob / np.sum(weighted_prob, axis=1)[:, np.newaxis]
+        with np.errstate(divide="ignore", invalid="ignore"):
+            responsibilities = weighted_prob / np.sum(weighted_prob, axis=1)[:, np.newaxis]
+
+        # FIXME: if sum(weighted_prob) can contain zeros (if a point is claimed by none, then the logarithm has a problem too)
         log_probabilities = np.log(np.sum(weighted_prob, axis=1))
 
         # logger.warning('NaN in responsibilities %s', np.sum(np.isnan(responsibilities)))
@@ -444,6 +451,7 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
             self._weights[fancy_index] = 0.0
             self._weights /= np.sum(self._weights)
 
+
     @abstractmethod
     def expect_components(self, data: np.ndarray) -> np.ndarray:
         """Check whether same as prob_a"""
@@ -455,3 +463,20 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
     @abstractmethod
     def find_degenerated(self) -> np.ndarray:
         """Select components that are degenerated and need to be reset"""
+
+    @abstractmethod
+    def rvs(self,n_samples: int=1, idx:Optional[np.ndarray]=None) -> np.ndarray:
+        """Draw random value samples from the mixture distribution
+
+        Parameters
+        ----------
+        n_samples: int
+            How many samples to draw, by default 1
+
+        idx : Optional[np.ndarray] (bool), shape (n_samples, n_components)
+            Column selector which indicates which component has been
+            selected. Only needed in case of the :class:`CompoundModel` subclass.
+            by default None
+
+        """
+

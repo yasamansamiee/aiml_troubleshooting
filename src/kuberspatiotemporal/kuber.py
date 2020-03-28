@@ -18,6 +18,8 @@ import logging
 import numpy as np
 import attr
 
+from scipy.stats import multinomial, multivariate_normal
+
 from .base import BaseModel
 
 logger = logging.getLogger(__name__)
@@ -61,7 +63,7 @@ class KuberModel(BaseModel):
         ), f"Warning super method not called (len(S)={len(self._sufficient_statistics)})"
 
         self.__pmf = np.random.dirichlet([1] * self.n_symbols, self.n_components)
-        logger.debug(self.__pmf.shape)
+        # logger.debug(self.__pmf.shape)
 
     def reset(self, fancy_index: np.ndarray):
         if self.random_reset:
@@ -91,9 +93,8 @@ class KuberModel(BaseModel):
             if self.online_learning:
                 if not np.all(self.__pmf <= 1.0):
                     # logger.warning('Probabilities exceed 1.0')
-                    self.__pmf = self.__pmf / np.sum(self.__pmf, axis=1)[:,np.newaxis]
+                    self.__pmf = self.__pmf / np.sum(self.__pmf, axis=1)[:, np.newaxis]
                 assert np.all(self.__pmf <= 1.0)
-
 
     def update_statistics(
         # pylint: disable=bad-continuation
@@ -103,7 +104,6 @@ class KuberModel(BaseModel):
         responsibilities: Optional[np.ndarray] = None,
         rate: Optional[float] = None,
     ):
-
 
         if case == "batch":
             assert data.ndim == 2, f"Data should be 2D is {data.ndim}"
@@ -121,8 +121,24 @@ class KuberModel(BaseModel):
 
         elif case == "init":
             # P = S1 / S0 => S1 = P * SO
-            self._sufficient_statistics[1] = self.__pmf * self._sufficient_statistics[0][:, np.newaxis]
+            self._sufficient_statistics[1] = (
+                self.__pmf * self._sufficient_statistics[0][:, np.newaxis]
+            )
 
     def find_degenerated(self):
         # One could check for a symbol with prob 1 but I don't think that's a good idea
         return np.zeros(self.n_components, dtype=bool)
+
+    def rvs(self, n_samples: int = 1, idx: Optional[np.ndarray] = None) -> np.ndarray:
+
+        if idx is None:
+            idx = multinomial(1, self._weights).rvs(size=n_samples)
+
+        multinomials_ = [multinomial(1, pmf) for pmf in self.__pmf]
+
+        feat: np.ndarray = np.array(
+            [[np.where(r == 1)[0][0] for r in mn.rvs(size=n_samples)] for mn in multinomials_]
+        ).T
+
+        return feat[idx != 0].reshape(-1, self.n_dim)  # pylint: disable=unsubscriptable-object
+

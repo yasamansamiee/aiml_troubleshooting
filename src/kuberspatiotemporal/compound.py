@@ -18,6 +18,7 @@ from typing import List, Optional
 import logging
 import attr
 import numpy as np
+from scipy import stats
 
 from .base import BaseModel
 
@@ -166,3 +167,13 @@ class CompoundModel(BaseModel):
             assert np.allclose(
                 self._weights, feature.model._weights
             ), f"\n{self._weights}\n{feature.model._weights}"
+
+    def rvs(self, n_samples: int = 1, idx: Optional[np.ndarray] = None) -> np.ndarray:
+
+        if idx is None:
+            idx = stats.multinomial(1, self._weights).rvs(size=n_samples)
+
+        logger.debug('sum of indices %s',np.sum(idx,axis=0))
+
+        return np.hstack([feat.model.rvs(n_samples, idx) for feat in self.features])
+
