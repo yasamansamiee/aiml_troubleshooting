@@ -225,7 +225,7 @@ class SpatialModel(BaseModel):
                 ]
             )
         else:
-            return super(data, y).score_samples
+            return super().score_samples(data, y)
 
     def score(self, data, y=None) -> float:
         if not self.box is None:
