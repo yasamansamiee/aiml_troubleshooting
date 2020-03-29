@@ -1,9 +1,10 @@
 @startuml
 |#AntiqueWhite|BaseModel|
 start
+:__expect(X);
 ->         abstract method;
-|#AntiqueWhite|KuberspatiotemporalModel|
-:expect_component(X);
+|#AntiqueWhite|CompoundModel|
+:expect(X);
 -> share weights;
 split
 |Children|
@@ -11,24 +12,24 @@ split
 split again
 :sync(weights);
 end split
-|#AntiqueWhite|KuberspatiotemporalModel|
+|#AntiqueWhite|CompoundModel|
 :delegate;
 split
 |Children|
-:expect_component(X);
+:expect(X);
 :compute probs. for model type;
 split again
-:expect_component(X);
+:expect(X);
 :compute probs. for model type;
 end split
-|#AntiqueWhite|KuberspatiotemporalModel|
+|#AntiqueWhite|CompoundModel|
 :multiply expectations ("AND");
 |BaseModel|
 :compute responsibilities;
 :update statistics S0;
 -> abstract method;
-|#AntiqueWhite|KuberspatiotemporalModel|
-:update_statistics(X, Responsibilities);
+|#AntiqueWhite|CompoundModel|
+:batch/online(X, Responsibilities);
 -> share sufficient statistics;
 split
 |Children|
@@ -36,35 +37,37 @@ split
 split again
 :sync(s0);
 end split
-|#AntiqueWhite|KuberspatiotemporalModel|
+|#AntiqueWhite|CompoundModel|
 :delegate;
 split
 |Children|
-:update_statistics(X, Responsibilities);
+:batch/online(X, Responsibilities);
+:update statistics;
 split again
-:update_statistics(X,, Responsibilities);
+:batch/online(X,, Responsibilities);
+:update statistics;
 end split
 |BaseModel|
-:maximize(X);
+:__maximize(X);
 :Update weights;
 -> abstract method;
 
-|#AntiqueWhite|KuberspatiotemporalModel|
-:maximize_component(X);
+|#AntiqueWhite|CompoundModel|
+:maximize(X);
 
-|#AntiqueWhite|KuberspatiotemporalModel|
+|#AntiqueWhite|CompoundModel|
 :delegate;
 split
 |Children|
-:maximize_component(X);
+:maximize(X);
 :Update model parameters;
 split again
-:maximize_component(X);
+:maximize(X);
 :Update model parameters;
 end split
 |BaseModel|
 :;
-|#AntiqueWhite|KuberspatiotemporalModel|
+|#AntiqueWhite|CompoundModel|
 -> abstract method;
 :find_degenerated();
 split
@@ -73,9 +76,19 @@ split
 split again
 :find_degenerated();
 end split
-|#AntiqueWhite|KuberspatiotemporalModel|
+|#AntiqueWhite|CompoundModel|
 :Join degenerated (OR);
 |BaseModel|
-:reset(degenerated);
+:__reset(degenerated);
+|#AntiqueWhite|CompoundModel|
+-> abstract method;
+:reset();
+split
+|Children|
+:reset();
+split again
+:reset;
+end split
+|BaseModel|
 stop
 @enduml

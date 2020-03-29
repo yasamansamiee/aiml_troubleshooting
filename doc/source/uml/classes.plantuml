@@ -35,15 +35,18 @@ class kuberspatiotemporal.BaseModel {
     + fit()
     + initialize()
     + sync()
-    - stick_breaking()
-    - expect()
-    - batch()
-    - online()
-    - reset()
-    {abstract} update_statistics()
-    {abstract} expect_component()
-    {abstract} maximize_component()
+    - __stick_breaking()
+    - __expect()
+    - __batch()
+    - __online()
+    - __reset()
+    {abstract} batch()
+    {abstract} online()
+    {abstract} online_init()
+    {abstract} maximize()
+    {abstract} expect()
     {abstract} find_degenerated()
+    {abstract} reset()
 }
 
 class kuberspatiotemporal.SpatialModel {
@@ -51,27 +54,36 @@ class kuberspatiotemporal.SpatialModel {
     + min_eigval
     - means
     - covs
-    + update_statistics()
-    + expect_component()
-    + maximize_component()
+    + batch()
+    + online()
+    + online_init()
+    + maximize()
+    + expect()
     + find_degenerated()
+    + reset()
 }
 
 class kuberspatiotemporal.KuberModel {
     + n_symbols
     - pmf
-    + update_statistics()
-    + expect_component()
-    + maximize_component()
+    + batch()
+    + online()
+    + online_init()
+    + maximize()
+    + expect()
     + find_degenerated()
+    + reset()
 }
 
 class kuberspatiotemporal.CompoundModel {
     + features : kuberspatiotemporal.BaseModel
-    + update_statistics()
-    + expect_component()
-    + maximize_component()
+    + batch()
+    + online()
+    + online_init()
+    + maximize()
+    + expect()
     + find_degenerated()
+    + reset()
 }
 
 @enduml

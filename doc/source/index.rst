@@ -27,8 +27,8 @@ Contents
 .. toctree::
    :maxdepth: 2
 
-   derivation
    discussion
+   derivation
    implementation
    todo
    appendix

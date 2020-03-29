@@ -3,14 +3,14 @@
 start
 :fit(X);
 if (batch==True) then
-:batch(X);
+:__batch(X);
 repeat
 :EM step for whole data set;
 repeat while (score difference < threshold OR too many iterations)
 else
-:online(X);
+:__online(X);
 :initialize sufficient statistics;
-:update_statistics(empty data set);
+:online_inite();
 repeat
 :compute update rate;
 :decrease ALL sufficient statistics;
