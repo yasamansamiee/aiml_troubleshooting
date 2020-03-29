@@ -116,7 +116,7 @@ def spatial():
 
 @pytest.fixture(scope="module")
 def categorical2D():
-    X, pi, pm11, pm12, pm21, pm22 = categorical_mixture(1000)
+    X, pi, pm11, pm12, pm21, pm22, _ = categorical_mixture(1000)
 
     ground_truth = CompoundModel(
         n_components=2,

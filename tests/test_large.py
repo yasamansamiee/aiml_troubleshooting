@@ -214,5 +214,4 @@ class TestLargeData:
 
         assert score > 0.90
 
-        assert False
 
