@@ -1,26 +1,28 @@
-# Data sources
+# Discussion
 
-The attributes that we are using is heterogeneous: For temporal and
+## Data sources
+
+The attributes that we are using are heterogeneous: For temporal and
 spatiotemporal, i.e., location and time, these are continuous attributes (i.e.,
 real numbers). They are not the only possible continuous attributes but
 especially time is a crucial factor for it defines a behavior (as in sequence of
 actions). For temporal and spatiotemporal behaviors, we use a stochastic mixture
-model that deals well with this type of values. 
+model that deals well with this type of values.
 
-## Categorical attributes
+### Categorical attributes
 
 Categorical data is usually processed by anomaly/outlier detection
-and classification algorithms but we use a heterogeneous model-driven approach. 
-Our architecture features a newly introduced component of a REST-enabled API that
+and classification algorithms but we use a heterogeneous model-driven approach.
+Acceptto's AIML-backend features a newly introduced component of a REST-enabled API that
 stores attributes/features of a fingerprint and computes basic feature
 engineering / statistical analysis directly on the DB with SQL aggregations.
 This technique is real-time capable thanks to sophisticated caching techniques.
 The framework is not at all limited to fingerprinting attributes. On the
 contrary, the code is dynamically generated and easily adjusted to specific use
 cases including the ability to be configured to weight policies (it is not
-limited to continuous values neither). 
+limited to continuous values neither).
 
-## Heterogeneous attributes
+### Heterogeneous attributes
 We use a custom
 model (heterogenous, nonparametric probabilistic mixture model) to learn
 behaviors from heterogeneous data (continuous and categorical). It divides the
@@ -32,7 +34,7 @@ hardware acceleration and is faster compared to competing methods (especially
 deep learning).
 
 
-## Application
+### Application
 
 The real data has to fulfill the underlying hypothesis (inductive
 bias) that valid users (and possibly threat actors too) can be grouped in way
@@ -43,17 +45,24 @@ failback (at the expense of losing the beneficial properties of a probabilistic
 approach and some of the supervised characteristics the method has)
 
 Data set size: The minimal size of data to train a model is specific to the
-client and determined by two factors: i) is it for learning individual behavior
-or commonality analysis, ii) how much data is observedData Assuming the case of
-commonality analysis, a single day might give sufficient information to create
+client and determined by two factors:
+
+1. is it for learning individual behavior or commonality analysis,
+2. How much data is observed
+
+Assuming the case of commonality analysis, a single day might give sufficient information to create
 an initial model if there is a large user base. To be able to learn a behavior
 that distinguishes between work days, a few instances of, for instance, Mondays
 have to be observed naturally. The variance of the distributions in the mixture
 is a good indicator of model quality.
 
 Model adjustment: The frequency of computing the model is specific to the client
-and determined by two factors: i) is it for learning individual behavior or
-commonality analysis, ii) how much data is observed. Hence, there is no general
+and determined by the same two factors:
+
+1. is it for learning individual behavior or commonality analysis,
+2. how much data is observed.
+
+Hence, there is no general
 answer as it strongly depends on the client’s ecosystem. For spatiotemporal
 behavior modeling (mobile app) for instance, once a day turned out to be a good
 value. Same holds for the amount of time data needs to be recorded until the
@@ -86,13 +95,13 @@ performs well.
 
     * Individual vs. commonality
         * High-volumetric data required
-        * Verified individual or Commonality analysis (grouping) Individual behavior 
+        * Verified individual or Commonality analysis (grouping) Individual behavior
         * Assumption: Distribution over time forms clusters
 
 * Attributes: Categorical
     * Multivariate Categorical attributes
         * Device fingerprinting: Language settings, OS type, etc.
-        * Traditional preprocessing: One-hot encoding 
+        * Traditional preprocessing: One-hot encoding
         * Outlier/Anomaly detection / Classification
 
 
@@ -102,14 +111,14 @@ performs well.
         * Computations optimized for database efficiency (aggregations) and caching
         * Outlier detection & behavior learning implemented modularized (preprocessing & pipelines, for simple integration * of custom algorithms)
         * Connection to publish-subscribe service / Data Hub
-        * Easy deployment and scalability 
+        * Easy deployment and scalability
 
 * Attributes: From spatiotemporal to heterogeneous data
 
     * Heterogeneous Data
         * Continuous / Cyclic / ordinal .. (e.g., locations, time, counts)
         * Pure categorical (e.g., most fingerprint attributes)
-        * Incomplete data (i.e., MFA as an approximate teaching signal) 
+        * Incomplete data (i.e., MFA as an approximate teaching signal)
 
 
     * Underlying assumption / bias
@@ -120,7 +129,7 @@ performs well.
 
 * Heterogenous, nonparametric probabilistic mixture model
 
-    * Models “acceptable” attribute values as probability distributions per group 
+    * Models “acceptable” attribute values as probability distributions per group
     * Automatic deduction of groups, explainable and extractable representation
     * In general, unsupervised learning with supervised characteristics (teaching signal)
     * Probabilistic inference gives probabilistic answer (with confidence).
