@@ -71,7 +71,8 @@ intersphinx_mapping = {
     'scipy': ('https://docs.scipy.org/doc/scipy/reference/', None),
     'numpy': ('https://docs.scipy.org/doc/numpy/', None),
     'matplotlib': ('http://matplotlib.sourceforge.net/', None),
-    'pandas': ('https://pandas.pydata.org/pandas-docs/stable/', None)
+    'pandas': ('https://pandas.pydata.org/pandas-docs/stable/', None),
+    'sklearn': ('http://scikit-learn.org/stable', None)
 }# List of patterns, relative to source directory, that match files and
 
 # Add markdown support
@@ -100,6 +101,7 @@ nbsphinx_execute = 'never'
 # a list of builtin themes.
 #
 html_theme = 'alabaster'
+
 # html_theme = 'sphinx_rtd_theme'
 html_favicon = "_static/favicon.ico"
 

@@ -32,6 +32,8 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 print(__name__)
 
+# Black and pylint disagree about line continuation
+# pylint: disable=bad-continuation
 
 @attr.s
 class SpatialModel(BaseModel):
@@ -95,7 +97,7 @@ class SpatialModel(BaseModel):
 
         self.__cached_regularization = np.identity(self.n_dim) * 1e-6
 
-    def expect_components(self, data: np.ndarray) -> np.ndarray:
+    def expect(self, data: np.ndarray) -> np.ndarray:
 
         if data.shape[1] != self.n_dim:
             raise ValueError(f"Wrong input dimensions {data.shape[1]} != {self.n_dim} ")
@@ -121,7 +123,7 @@ class SpatialModel(BaseModel):
 
         if not self.box is None:
 
-            a=  np.array(
+            a = np.array(
                 [
                     weight * boxed_cdf(data, self.box, mean, sigma, None, 1e-5, 1e-5)
                     for sigma, mean, weight in zip(self.__covs, self.__means, self._weights)
@@ -132,56 +134,50 @@ class SpatialModel(BaseModel):
         else:
             return probabilities
 
-    def update_statistics(
-        # pylint: disable=bad-continuation
-        self,
-        case: str,
-        data: Optional[np.ndarray] = None,
-        responsibilities: Optional[np.ndarray] = None,
-        rate: Optional[float] = None,
+    def batch(self, data: np.ndarray, responsibilities: np.ndarray):
+        n_samples = responsibilities.shape[0]
+        assert data.shape == (n_samples, self.n_dim)
+
+        self._sufficient_statistics[1] = np.sum(
+            responsibilities[:, :, np.newaxis]
+            * data[:, np.newaxis, :],  # (n_samples, n_components, n_dim)
+            axis=0,
+        )
+
+        self._sufficient_statistics[2] = np.sum(
+            responsibilities[:, :, np.newaxis, np.newaxis]
+            * np.einsum("Ti,Tj->Tij", data, data)[
+                :, np.newaxis, :, :
+            ],  # (n_samples, n_components, n_dim, n_dim)
+            axis=0,
+        )
+
+    def online(
+        self, data: np.ndarray, responsibilities: np.ndarray, rate: float,
     ):
+        assert data.shape == (1, self.n_dim)
 
-        super().update_statistics(case, data, responsibilities, rate)
+        self._sufficient_statistics[1] += (
+            rate * responsibilities.reshape(-1)[:, np.newaxis] * data.reshape(-1)[np.newaxis, :]
+        )
 
-        if case == "batch":
-            n_samples = responsibilities.shape[0]
-            assert data.shape == (n_samples, self.n_dim)
+        self._sufficient_statistics[2] += (
+            rate
+            * responsibilities.reshape(-1)[:, np.newaxis, np.newaxis]
+            * np.einsum("i,j->ij", data.reshape(-1), data.reshape(-1))[np.newaxis, :, :]
+        )
 
-            self._sufficient_statistics[1] = np.sum(
-                responsibilities[:, :, np.newaxis]
-                * data[:, np.newaxis, :],  # (n_samples, n_components, n_dim)
-                axis=0,
-            )
+    def online_init(self):
+        self._sufficient_statistics[1] = (
+            self._sufficient_statistics[0][:, np.newaxis] * self.__means
+        )
 
-            self._sufficient_statistics[2] = np.sum(
-                responsibilities[:, :, np.newaxis, np.newaxis]
-                * np.einsum("Ti,Tj->Tij", data, data)[
-                    :, np.newaxis, :, :
-                ],  # (n_samples, n_components, n_dim, n_dim)
-                axis=0,
-            )
-        elif case == "online":
-            assert data.shape == (1, self.n_dim)
+        self._sufficient_statistics[2] = self._sufficient_statistics[0][
+            :, np.newaxis, np.newaxis
+        ] * (self.__covs + np.einsum("ki,kj->kij", self.__means, self.__means))
 
-            self._sufficient_statistics[1] += (
-                rate * responsibilities.reshape(-1)[:, np.newaxis] * data.reshape(-1)[np.newaxis, :]
-            )
 
-            self._sufficient_statistics[2] += (
-                rate
-                * responsibilities.reshape(-1)[:, np.newaxis, np.newaxis]
-                * np.einsum("i,j->ij", data.reshape(-1), data.reshape(-1))[np.newaxis, :, :]
-            )
-        elif case == "init":
-            self._sufficient_statistics[1] = (
-                self._sufficient_statistics[0][:, np.newaxis] * self.__means
-            )
-
-            self._sufficient_statistics[2] = self._sufficient_statistics[0][
-                :, np.newaxis, np.newaxis
-            ] * (self.__covs + np.einsum("ki,kj->kij", self.__means, self.__means))
-
-    def maximize_components(self):
+    def maximize(self):
 
         # suppress div by zero warinings (occur naturally for disabled components)
         with np.errstate(divide="ignore", invalid="ignore"):
@@ -197,7 +193,7 @@ class SpatialModel(BaseModel):
             ) + self.__cached_regularization[np.newaxis, :, :]
 
     def reset(self, fancy_index: np.ndarray):
-        super().reset(fancy_index)
+
         if self.random_reset:
             self.__means[fancy_index] = (
                 (self.limits[1] - self.limits[0])
@@ -237,18 +233,17 @@ class SpatialModel(BaseModel):
             return self.score_samples(data).mean()
         else:
             return super().score(data, y)
-
-
-    def rvs(self,n_samples: int=1, idx:Optional[np.ndarray]=None) -> np.ndarray:
+    def rvs(self, n_samples: int = 1, idx: Optional[np.ndarray] = None) -> np.ndarray:
 
         if idx is None:
             idx = multinomial(1, self._weights).rvs(size=n_samples)
 
-        mvn = [multivariate_normal(mean=self.__means[i], cov=self.__covs[i],) for i in range(self.n_components)]
+        mvn = [
+            multivariate_normal(mean=self.__means[i], cov=self.__covs[i],)
+            for i in range(self.n_components)
+        ]
         rvs = np.array([mvn[i].rvs(size=n_samples) for i in range(self.n_components)])
         rvs = np.swapaxes(rvs, 0, 1)
 
-        return rvs[idx != 0].reshape(-1,self.n_dim)
-
-
+        return rvs[idx != 0].reshape(-1, self.n_dim)
 

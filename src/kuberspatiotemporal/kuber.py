@@ -24,6 +24,8 @@ from .base import BaseModel
 
 logger = logging.getLogger(__name__)
 
+# Black and pylint disagree about line continuation
+# pylint: disable=bad-continuation
 
 @attr.s
 class KuberModel(BaseModel):
@@ -41,13 +43,14 @@ class KuberModel(BaseModel):
     Parameters
     ----------
     n_symbols : int
-        [description], defaults to 5
+        Number of possible symbols/values, defaults to 5
 
     """
 
     # public attributes
     n_symbols: int = attr.ib(default=5)  # CATEGORICAL
-    # Internal state variable: Probability mass functions
+
+    #: Internal state variable: Probability mass functions, shape (n_components, n_symbols)
     __pmf: Optional[np.ndarray] = attr.ib(default=None, repr=False)
 
     def initialize(self):
@@ -66,18 +69,19 @@ class KuberModel(BaseModel):
         # logger.debug(self.__pmf.shape)
 
     def reset(self, fancy_index: np.ndarray):
+
         if self.random_reset:
             self.__pmf[fancy_index] = np.random.dirichlet([1] * self.n_symbols, 1)
         else:
             self.__pmf[fancy_index] = np.zeros(self.n_symbols)
 
-    def expect_components(self, data: np.ndarray) -> np.ndarray:
+    def expect(self, data: np.ndarray) -> np.ndarray:
         assert data.ndim == 2, f"Data should be 2D is {data.ndim}"
 
         assert data.shape[1] == 1, "Data not a column vector"
         return self.__pmf[:, data.reshape(-1).astype(int)].T
 
-    def maximize_components(self):
+    def maximize(self):
 
         # suppress div by zero warinings (occur naturally for disabled components)
         with np.errstate(divide="ignore", invalid="ignore"):
@@ -96,37 +100,31 @@ class KuberModel(BaseModel):
                     self.__pmf = self.__pmf / np.sum(self.__pmf, axis=1)[:, np.newaxis]
                 assert np.all(self.__pmf <= 1.0)
 
-    def update_statistics(
-        # pylint: disable=bad-continuation
-        self,
-        case: str,
-        data: Optional[np.ndarray] = None,
-        responsibilities: Optional[np.ndarray] = None,
-        rate: Optional[float] = None,
+    def batch(self, data: np.ndarray, responsibilities: np.ndarray):
+        assert data.ndim == 2, f"Data should be 2D is {data.ndim}"
+        n_samples = data.shape[0]
+        temp = np.zeros((n_samples, self.n_components, self.n_symbols))
+        temp[np.arange(n_samples), :, data.reshape(-1).astype(int)] = responsibilities
+        self._sufficient_statistics[1] = np.sum(temp, axis=0)
+
+    def online_init(self):
+        # P = S1 / S0 => S1 = P * SO
+        self._sufficient_statistics[1] = (
+            self.__pmf * self._sufficient_statistics[0][:, np.newaxis]
+        )
+
+    def online(
+        self, data: np.ndarray, responsibilities: np.ndarray, rate: float,
     ):
+        assert data.ndim == 2, f"Data should be 2D is {data.ndim}"
+        n_samples = data.shape[0]
+        temp = np.zeros((n_samples, self.n_components, self.n_symbols))
+        temp[np.arange(n_samples), :, data.astype(int)] = responsibilities
+        self._sufficient_statistics[1] += rate * np.sum(temp, axis=0)
 
-        if case == "batch":
-            assert data.ndim == 2, f"Data should be 2D is {data.ndim}"
-            n_samples = data.shape[0]
-            temp = np.zeros((n_samples, self.n_components, self.n_symbols))
-            temp[np.arange(n_samples), :, data.reshape(-1).astype(int)] = responsibilities
-            self._sufficient_statistics[1] = np.sum(temp, axis=0)
-
-        elif case == "online":
-            assert data.ndim == 2, f"Data should be 2D is {data.ndim}"
-            n_samples = data.shape[0]
-            temp = np.zeros((n_samples, self.n_components, self.n_symbols))
-            temp[np.arange(n_samples), :, data.astype(int)] = responsibilities
-            self._sufficient_statistics[1] += rate * np.sum(temp, axis=0)
-
-        elif case == "init":
-            # P = S1 / S0 => S1 = P * SO
-            self._sufficient_statistics[1] = (
-                self.__pmf * self._sufficient_statistics[0][:, np.newaxis]
-            )
 
     def find_degenerated(self):
-        # One could check for a symbol with prob 1 but I don't think that's a good idea
+        # TODO One could check for a symbol with prob 1 but I don't think that's a good idea
         return np.zeros(self.n_components, dtype=bool)
 
     def rvs(self, n_samples: int = 1, idx: Optional[np.ndarray] = None) -> np.ndarray:
@@ -141,4 +139,5 @@ class KuberModel(BaseModel):
         ).T
 
         return feat[idx != 0].reshape(-1, self.n_dim)  # pylint: disable=unsubscriptable-object
+
 

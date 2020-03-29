@@ -24,6 +24,9 @@ from .base import BaseModel
 
 logger = logging.getLogger(__name__)
 
+# Black and pylint disagree about line continuation
+# pylint: disable=bad-continuation
+
 
 @attr.s
 class Feature:
@@ -51,37 +54,45 @@ class CompoundModel(BaseModel):
 
     Example
     -------
-
-    .. code::python
+    .. code:: python
 
         from sklearn.compose import ColumnTransformer
         from sklearn.preprocessing import FunctionTransformer
         from sklearn.pipeline import Pipeline
 
         import pandas as pd
-        d = {'col1': [1, 2], 'col2': [3, 4]}
-        df = pd.DataFrame(data=d)
-        #    col1  col2
-        # 0     1     3
-        # 1     2     4
-        ct = ColumnTransformer(
-            [('fst', FunctionTransformer(lambda x: x*2), ['col1']),
-             ('scnd',FunctionTransformer(lambda x: x),['col1','col2'])]
+        d = {'x': [0.5, 0.6], 'y': [0.9, 0.1], 'f2': [1, 2], 'f2': [3, 4]}
+        #     x    y  f1  f2
+        # 0  0.5  0.9   1   3
+        # 1  0.6  0.1   2   4
+
+        pipeline = make_pipeline(
+            make_column_transformer(
+                (FunctionTransformer(lambda x: np.array(x).reshape(-1, 1)), "x"),
+                (FunctionTransformer(lambda x: np.array(x).reshape(-1, 1)), "y"),
+                (FunctionTransformer(lambda x: np.array(x).reshape(-1, 1)), "f1"),
+                (FunctionTransformer(lambda x: np.array(x).reshape(-1, 1)), "f2"),
+            ),
+            CompoundModel(
+                n_components=2,
+                n_dim=4,
+                n_iterations=200,
+                scaling_parameter=1.1,
+                nonparametric=False,
+                online_learning=False,
+                score_threshold=ground_truth.score_threshold,  # has been set in the fixture
+                features=[
+                    Feature(SpatialModel(n_dim=2, n_components=2), [0, 1]),
+                    Feature(KuberModel(n_symbols=3, nonparametric=True, n_components=2), [2]),
+                    Feature(KuberModel(n_symbols=3, nonparametric=True, n_components=2), [3]),
+                ],
+            )
         )
-        ct.fit_transform(df)
-        # array([[2, 1, 3],
-        #        [4, 2, 4]])
-        p = Pipeline(
-            [
-                ("ct", ct),
-                (
-                    "kst",
-                    CompoundModel(
-                        features=[Feature(TemporalModel, [1]), Feature(SpatialModel, [2, 3])]
-                    ),
-                ),
-            ]
-        )
+
+        pipeline.fit(d)
+        pipeline.score_threshold = pipeline.get_score_threshold(d)
+        pipeline.score(d)
+
     """
 
     features: List[Feature] = attr.ib(factory=list)
@@ -107,14 +118,14 @@ class CompoundModel(BaseModel):
         for feature in self.features:
             feature.model.reset(fancy_index)
 
-    def expect_components(self, data: np.ndarray) -> np.ndarray:
+    def expect(self, data: np.ndarray) -> np.ndarray:
         for feature in self.features:
             feature.model.sync(self._weights, self._sufficient_statistics[0])
 
         probability = np.prod(
             np.array(
                 [
-                    feature.model.expect_components(data[:, feature.columns])
+                    feature.model.expect(data[:, feature.columns])
                     for feature in self.features
                 ]
             ),
@@ -127,10 +138,10 @@ class CompoundModel(BaseModel):
 
         return probability
 
-    def maximize_components(self):
+    def maximize(self):
         for feature in self.features:
             feature.model.sync(self._weights, self._sufficient_statistics[0])
-            feature.model.maximize_components()
+            feature.model.maximize()
 
     def find_degenerated(self) -> np.ndarray:
         degenerated = False
@@ -139,31 +150,36 @@ class CompoundModel(BaseModel):
             # Comment: `|=` won't broadcast
         return degenerated
 
-    def update_statistics(
-        # pylint: disable=bad-continuation,unused-argument
-        self,
-        case: str,
-        data: Optional[np.ndarray] = None,
-        responsibilities: Optional[np.ndarray] = None,
-        rate: Optional[float] = None,
-    ):
-
-        # logger.debug(data)
-
-        # super().update_statistics(case, data, responsibilities, rate)
-
+    def batch(self, data: np.ndarray, responsibilities: np.ndarray):
         for feature in self.features:
             feature.model.sync(self._weights, self._sufficient_statistics[0])
 
-            feature.model.update_statistics(
-                case, data[:, feature.columns] if data is not None else None, responsibilities, rate
+            feature.model.batch(
+                data[:, feature.columns] if data is not None else None, responsibilities
             )
 
             # Control:
-            # pylint: disable=protected-access
-            # assert np.allclose(
-            #     self._sufficient_statistics[0], feature.model._sufficient_statistics[0]
-            # )
+            assert np.allclose(
+                self._weights, feature.model._weights
+            ), f"\n{self._weights}\n{feature.model._weights}"
+
+    def online_init(self):
+        for feature in self.features:
+            feature.model.sync(self._weights, self._sufficient_statistics[0])
+
+            feature.model.online_init()
+
+    def online(
+        self, data: np.ndarray, responsibilities: np.ndarray, rate: float,
+    ):
+        for feature in self.features:
+            feature.model.sync(self._weights, self._sufficient_statistics[0])
+
+            feature.model.online(
+                data[:, feature.columns] if data is not None else None, responsibilities, rate
+            )
+
+            # Control:
             assert np.allclose(
                 self._weights, feature.model._weights
             ), f"\n{self._weights}\n{feature.model._weights}"
@@ -173,7 +189,6 @@ class CompoundModel(BaseModel):
         if idx is None:
             idx = stats.multinomial(1, self._weights).rvs(size=n_samples)
 
-        logger.debug('sum of indices %s',np.sum(idx,axis=0))
+        logger.debug("sum of indices %s", np.sum(idx, axis=0))
 
         return np.hstack([feat.model.rvs(n_samples, idx) for feat in self.features])
-
