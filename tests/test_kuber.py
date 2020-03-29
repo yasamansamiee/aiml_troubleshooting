@@ -24,9 +24,7 @@ from sklearn.preprocessing import FunctionTransformer
 from kuberspatiotemporal import KuberModel, CompoundModel, Feature
 
 
-@pytest.fixture(scope="class")
-def synthetic_data():
-    return None
+
 
 
 class TestKuberModel:

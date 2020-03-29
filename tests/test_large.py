@@ -27,25 +27,32 @@ np.set_printoptions(linewidth=200)
 np.set_printoptions(suppress=True)
 np.set_printoptions(precision=3)
 
-N_COMPONENTS=10
-N_LARGE_NUMBER=1000
-N_SAMPLES=100000
-N_FEATURES=4
-N_SYMBOLS=5
+N_COMPONENTS = 10
+N_LARGE_NUMBER = 100
+N_SAMPLES = 100000
+N_FEATURES = 5
+N_SYMBOLS = 5
+# N_COMPONENTS=10
+# N_LARGE_NUMBER=100
+# N_SAMPLES=1000000
+# N_FEATURES=10
+# N_SYMBOLS=20
+
 
 @pytest.fixture(scope="class")
 def large_data():
 
     ground_truth = CompoundModel(
         n_components=N_COMPONENTS,
-        n_dim=N_FEATURES+2,
+        n_dim=N_FEATURES + 2,
         nonparametric=False,
         scaling_parameter=10,
-        features=
-        [Feature(SpatialModel(n_dim=2, n_components=N_COMPONENTS), [0, 1])]
-        +
-        [
-            Feature(KuberModel(n_symbols=N_SYMBOLS, nonparametric=True, n_components=N_COMPONENTS), [2+i])
+        features=[Feature(SpatialModel(n_dim=2, n_components=N_COMPONENTS), [0, 1])]
+        + [
+            Feature(
+                KuberModel(n_symbols=N_SYMBOLS, nonparametric=True, n_components=N_COMPONENTS),
+                [2 + i],
+            )
             for i in range(N_FEATURES)
         ],
     )
@@ -54,136 +61,158 @@ def large_data():
 
 
 class TestLargeData:
-
     def test_dataset(self, large_data):
         X, ground_truth = large_data
-        assert X.shape == (N_SAMPLES, N_FEATURES+2)
+        assert X.shape == (N_SAMPLES, N_FEATURES + 2)
 
     def test_batch_finite_em(self, large_data, logger):
 
+        # Test learning with prior knowledge about the number of components
+        # First check that the acceptance rate over the test data
+        # is below 50% (pick the threshold from the ground truth)
+        # Then learn and expect the prediction rate to be >90%
 
         X, ground_truth = large_data
+        ground_truth.score_threshold = ground_truth.get_score_threshold(X)
 
         kst = CompoundModel(
             n_components=N_COMPONENTS,
-            n_dim=N_FEATURES+2,
+            n_dim=N_FEATURES + 2,
             n_iterations=200,
             scaling_parameter=0.5,
-
             nonparametric=False,
             online_learning=False,
-            features=
-            [Feature(SpatialModel(n_dim=2, n_components=N_COMPONENTS), [0, 1])]
-            +
-            [
-                Feature(KuberModel(n_symbols=N_SYMBOLS, nonparametric=True, n_components=N_COMPONENTS), [ 2+i])
+            score_threshold=ground_truth.score_threshold,
+
+            features=[Feature(SpatialModel(n_dim=2, n_components=N_COMPONENTS), [0, 1])]
+            + [
+                Feature(
+                    KuberModel(n_symbols=N_SYMBOLS, nonparametric=True, n_components=N_COMPONENTS),
+                    [2 + i],
+                )
                 for i in range(N_FEATURES)
             ],
         )
+        score = kst.score(X)
+
+        logger.debug("Compound (C): Score before learning: %f", score)
+        assert score < 0.50
 
         kst.fit(X)
-
 
         idx1 = np.argsort(kst._weights)
         idx2 = np.argsort(ground_truth._weights)
 
+        score = kst.score(X)
+
         logger.debug(
-            "Cmpound (C): %s, %f, %f, %f",
-            kst._weights[idx1[-N_COMPONENTS*2:]],
-            np.sum(kst._weights),
-            kst.score(X),
-            np.exp(kst.score(X)),
+            "Cmpound (C): %s, %f",
+            kst._weights[idx1[-N_COMPONENTS * 2 :]],
+            score
+            # np.exp(kst.score(X)),
         )
+
+        gt_score = ground_truth.score(X)
         logger.debug(
-            "Ground truth (GT): %s, %f, %f",
+            "Ground truth (GT): %s, %f",
             ground_truth._weights[idx2[-N_COMPONENTS:]],
-            ground_truth.score(X),
-            np.exp(ground_truth.score(X)),
+            gt_score,
+            # np.exp(ground_truth.score(X)),
         )
 
         logger.debug("C: \n%s", kst.features[0].model._SpatialModel__means[idx1[-N_COMPONENTS:]])
-        logger.debug("GT: \n%s", ground_truth.features[0].model._SpatialModel__means[idx2[-N_COMPONENTS:]])
+        logger.debug(
+            "GT: \n%s", ground_truth.features[0].model._SpatialModel__means[idx2[-N_COMPONENTS:]]
+        )
 
-        for i in range(1, N_FEATURES+1):
-            logger.debug("%d)\nC:\n%s", i, kst.features[i].model._KuberModel__pmf[idx1[-N_COMPONENTS:]])
-            logger.debug("GT: \n%s", ground_truth.features[i].model._KuberModel__pmf[idx2[-N_COMPONENTS:]])
+        for i in range(1, N_FEATURES + 1):
+            logger.debug(
+                "%d)\nC:\n%s", i, kst.features[i].model._KuberModel__pmf[idx1[-N_COMPONENTS:]]
+            )
+            logger.debug(
+                "GT: \n%s", ground_truth.features[i].model._KuberModel__pmf[idx2[-N_COMPONENTS:]]
+            )
 
-        ground_truth.fit(X)
-        idx2 = np.argsort(ground_truth._weights)
-        logger.debug("b)\nC: \n%s", kst.features[0].model._SpatialModel__means[idx1[-N_COMPONENTS:]])
-        logger.debug("GT: \n%s", ground_truth.features[0].model._SpatialModel__means[idx2[-N_COMPONENTS:]])
 
-        for i in range(1, N_FEATURES+1):
-            logger.debug("%db)\nC:\n%s", i, kst.features[i].model._KuberModel__pmf[idx1[-N_COMPONENTS:]])
-            logger.debug("GT: \n%s", ground_truth.features[i].model._KuberModel__pmf[idx2[-N_COMPONENTS:]])
-        logger.debug("%f, %f", ground_truth.score(X), np.exp(ground_truth.score(X)))
-
-        assert False
-        assert abs(kst.score(X) - ground_truth.score(X)) < 1e-3
-
+        assert score > 0.90
 
     def test_batch_unparam_em(self, large_data, logger):
 
 
+        # Same as the test above but without knowledge about the number of clusters
+
         X, ground_truth = large_data
+
+        # np.savetxt('data.csv.gz',X,delimiter=',')
+
+        ground_truth.score_threshold = ground_truth.get_score_threshold(X)
+
+        logger.debug("Threshold: %f", ground_truth.score_threshold)
 
         kst = CompoundModel(
             n_components=N_LARGE_NUMBER,
-            n_dim=N_FEATURES+2,
+            n_dim=N_FEATURES + 2,
             n_iterations=200,
             scaling_parameter=0.5,
-
             nonparametric=True,
             online_learning=False,
+            score_threshold=ground_truth.score_threshold,
             features=
             # [Feature(SpatialModel(n_dim=2, box=0.01, n_components=N_LARGE_NUMBER), [0, 1])]
             [Feature(SpatialModel(n_dim=2, n_components=N_LARGE_NUMBER), [0, 1])]
-            +
-            [
-                Feature(KuberModel(n_symbols=N_SYMBOLS, nonparametric=True, n_components=N_LARGE_NUMBER), [ 2+i])
+            + [
+                Feature(
+                    KuberModel(
+                        n_symbols=N_SYMBOLS, nonparametric=True, n_components=N_LARGE_NUMBER
+                    ),
+                    [2 + i],
+                )
                 for i in range(N_FEATURES)
             ],
         )
 
-        kst.fit(X)
+        score = kst.score(X)
 
+        logger.debug("Compound (C): Score before learning: %f", score)
+        assert score < 0.50
+
+        kst.fit(X)
 
         idx1 = np.argsort(kst._weights)
         idx2 = np.argsort(ground_truth._weights)
 
-        logger.debug(
-            "Cmpound (C): %s, %f, %f, %f",
-            kst._weights[idx1[-N_COMPONENTS*2:]],
-            np.sum(kst._weights),
-            kst.score(X),
-            np.exp(kst.score(X)),
-        )
+        score = kst.score(X)
 
         logger.debug(
-            "Ground truth (GT): %s, %f, %f",
+            "Cmpound (C): %s, %f",
+            kst._weights[idx1[-N_COMPONENTS * 2 :]],
+            score
+            # np.exp(kst.score(X)),
+        )
+
+        gt_score = ground_truth.score(X)
+        logger.debug(
+            "Ground truth (GT): %s, %f",
             ground_truth._weights[idx2[-N_COMPONENTS:]],
-            ground_truth.score(X),
-            np.exp(ground_truth.score(X)),
+            gt_score,
+            # np.exp(ground_truth.score(X)),
         )
 
         logger.debug("C: \n%s", kst.features[0].model._SpatialModel__means[idx1[-N_COMPONENTS:]])
-        logger.debug("GT: \n%s", ground_truth.features[0].model._SpatialModel__means[idx2[-N_COMPONENTS:]])
+        logger.debug(
+            "GT: \n%s", ground_truth.features[0].model._SpatialModel__means[idx2[-N_COMPONENTS:]]
+        )
 
-        for i in range(1, N_FEATURES+1):
-            logger.debug("%d)\nC:\n%s", i, kst.features[i].model._KuberModel__pmf[idx1[-N_COMPONENTS:]])
-            logger.debug("GT: \n%s", ground_truth.features[i].model._KuberModel__pmf[idx2[-N_COMPONENTS:]])
+        for i in range(1, N_FEATURES + 1):
+            logger.debug(
+                "%d)\nC:\n%s", i, kst.features[i].model._KuberModel__pmf[idx1[-N_COMPONENTS:]]
+            )
+            logger.debug(
+                "GT: \n%s", ground_truth.features[i].model._KuberModel__pmf[idx2[-N_COMPONENTS:]]
+            )
 
-        # ground_truth.fit(X)
-        # idx2 = np.argsort(ground_truth._weights)
-        # logger.debug("b)\nC: \n%s", kst.features[0].model._SpatialModel__means[idx1[-N_COMPONENTS:]])
-        # logger.debug("GT: \n%s", ground_truth.features[0].model._SpatialModel__means[idx2[-N_COMPONENTS:]])
 
-        # for i in range(1, N_FEATURES+1):
-        #     logger.debug("%db)\nC:\n%s", i, kst.features[i].model._KuberModel__pmf[idx1[-N_COMPONENTS:]])
-        #     logger.debug("GT: \n%s", ground_truth.features[i].model._KuberModel__pmf[idx2[-N_COMPONENTS:]])
-        # logger.debug("%f, %f", ground_truth.score(X), np.exp(ground_truth.score(X)))
+        assert score > 0.90
 
-        # for i in range(50):
-        #     print(i, kst.features[0].model._KuberModel__pmf)
         assert False
-        assert abs(kst.score(X) - ground_truth.score(X)) < 1e-3
+

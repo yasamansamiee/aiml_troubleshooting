@@ -65,10 +65,15 @@ To use the classes, shortcuts have been added:
 
 ```python
 from kuberspatiotemporal import (
-    KuberspatiotemporalModel, # Also alias `CompoundModel`
+    CompoundModel,
     KuberModel,
     SpatialModel
 )
 ```
 
 Build and read the documentation for more details about usage.
+
+
+## TODOs and open issues
+
+See generated documentation

@@ -98,6 +98,8 @@ def heterogeneous():
     ground_truth.features[2].model._KuberModel__pmf = np.array([pm21, pm22])
     ground_truth._weights = pi
 
+    ground_truth.score_threshold = ground_truth.get_score_threshold(X, 0.005)
+
 
 
     return df, make_pipeline(ct,ground_truth), ground_truth
