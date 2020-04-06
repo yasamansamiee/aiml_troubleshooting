@@ -95,7 +95,7 @@ class CompoundModel(BaseModel):
 
     """
 
-    features: List[Feature] = attr.ib(factory=list)
+    features: List[Feature] = attr.ib(factory=list, repr=False)
 
     def initialize(self):
         super().initialize()

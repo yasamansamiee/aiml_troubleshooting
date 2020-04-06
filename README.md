@@ -43,6 +43,7 @@ To run unit tests, run:
 pytest --log-level=WARNING
 # Specify a selected test
 pytest --log-level=DEBUG -k "TestKuberModel"
+pytest --log-level=DEBUG tests/test_large.py::TestLargeData::test_batch_unparam_em
 ```
 
 To work with [VisualStudio Code](https://code.visualstudio.com/):

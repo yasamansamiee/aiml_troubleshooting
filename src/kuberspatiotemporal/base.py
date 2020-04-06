@@ -63,7 +63,7 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
             by default: False
         n_iterations : int
             In case of batch learning, this number refer to the maximal number of
-            alterations in the EM algorith. In online learning, this parameter is
+            alternations in the EM algorith. In online learning, this parameter is
             used to set how many times the same data set should be processed (mini batch),
             TODO: Incremental learning should be revised.
             by default 100
@@ -101,7 +101,7 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
     #:
     #:     S_0 = \left( \sum_{t\in T} \mathbb E[\delta_i(x)|y_{T},\Phi] \right)_{i \in I}
     _sufficient_statistics: List[np.ndarray] = attr.ib(
-        factory=list, repr=lambda x: repr_list_ndarray
+        factory=list, repr=repr_list_ndarray
     )
 
     #: Ratios :math:`\nu_i \sim \text{Beta}(1,\alpha)`
@@ -351,7 +351,7 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
         """
 
         if self.__counter == 0:
-            self.__counter = 100
+            self.__counter = 100  # FIXME Adriana! should a parameter??
 
             self._sufficient_statistics[0] = self._weights * 100
             self.online_init()

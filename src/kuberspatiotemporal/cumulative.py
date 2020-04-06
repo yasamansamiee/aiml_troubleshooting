@@ -13,11 +13,10 @@ __maintainer__ = "Stefan Ulbrich"
 __email__ = "Stefan.Ulbrich@acceptto.com"
 __status__ = "alpha"
 __date__ = "2019-02-19"
-__all__ = ['boxed_cumulative', 'boxed_cdf']
+__all__ = ['boxed_cdf']
 
 
 from typing import Union
-from sklearn.mixture import GaussianMixture, BayesianGaussianMixture
 import numpy as np
 from scipy.stats import mvn
 from scipy.stats._multivariate import _squeeze_output
@@ -27,38 +26,6 @@ from scipy.stats._multivariate import _squeeze_output
 # pylint: disable=too-many-arguments
 
 
-def boxed_cumulative(gmm: Union[GaussianMixture, BayesianGaussianMixture],
-                     centers: np.ndarray, width: Union[float, np.ndarray],
-                     maxpts: float = None, abseps=1e-5, releps=1e-5) -> Union[float, np.ndarray]:
-    r"""Compute the *boxed* cumulative density of a Gaussian Mixture Model function given the c
-    enters and widths of one or more intervals.
-
-    Parameters
-    ----------
-    centers : ndarray
-        The centers of the boxes to compute the cumulative function for. Row matrix
-        of points. Number of columns must match the dimension of the mean parameter.
-    width : float or ndarray
-        The width of the box. Must be able to be broadcast to the first parameter.
-    mean : ndarray
-        See :data:`scipy.stats.multivariate_normal`
-    cov : ndarray
-        See :data:`scipy.stats.multivariate_normal`
-    maxpts : float
-        See :data:`scipy.stats.multivariate_normal`
-    abseps : float
-        See :data:`scipy.stats.multivariate_normal`
-    releps : float
-        See :data:`scipy.stats.multivariate_normal`
-    """
-    # XXX SU->SU: Docstring incomplete / requires checking
-    return np.sum(
-        [
-            weight *
-            boxed_cdf(centers, width, mean, sigma, maxpts, abseps, releps)
-            for sigma, mean, weight in zip(gmm.covariances_, gmm.means_, gmm.weights_)
-        ]
-    )
 
 
 def boxed_cdf(

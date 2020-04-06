@@ -5,9 +5,7 @@ Script to minify the package upon install.
 
 __author__ = "Stefan Ulbrich"
 __copyright__ = "Copyright 2018-2020, Acceptto Corporation, All rights reserved."
-__credits__ = []
 __license__ = "Acceptto Confidential"
-__version__ = ""
 __maintainer__ = "Stefan Ulbrich"
 __email__ = "Stefan.Ulbrich@acceptto.com"
 __status__ = "alpha"

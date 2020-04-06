@@ -176,6 +176,9 @@ def cholesky_precisions(x: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     n_components, n_features, _ = x.shape
 
     precisions_chol = np.empty((n_components, n_features, n_features))
+
+    # TODO: Adriana maybe parallelize me with joblib
+
     for k, covariance in enumerate(x):
         try:
             cov_chol = scipy_linalg.cholesky(covariance, lower=True)
