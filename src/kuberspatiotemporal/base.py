@@ -85,7 +85,7 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
 
     n_iterations: int = attr.ib(default=100)
 
-    score_threshold: float = attr.ib(default=0)
+    score_threshold: Optional[float] = attr.ib(default=None)
 
 
     random_reset: bool = attr.ib(default=False)
@@ -163,7 +163,7 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
         :meth:`__initialize()` which calls overriden/abstract :meth:`initialize()`
         """
 
-        logger.warning("in __attrs_post_init__")
+        # logger.warning("in __attrs_post_init__")
         self.__initialize()
 
     def __initialize(self):
@@ -252,12 +252,12 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
         with np.errstate(divide="ignore", invalid="ignore"):
             responsibilities = weighted_prob / np.sum(weighted_prob, axis=1)[:, np.newaxis]
 
+        # logger.warning('NaN in responsibilities %s', np.sum(np.isnan(responsibilities)))
+        responsibilities[np.isnan(responsibilities)] = 0
         # FIXME: if sum(weighted_prob) can contain zeros
         # (if a point is claimed by none, then the logarithm has a problem too)
         log_probabilities = np.log(np.sum(weighted_prob, axis=1))
 
-        # logger.warning('NaN in responsibilities %s', np.sum(np.isnan(responsibilities)))
-        responsibilities[np.isnan(responsibilities)] = 0
         # logger.debug("%s %s", weighted_prob.shape, responsibilities.shape)
         assert responsibilities.shape == (
             data.shape[0],
@@ -531,7 +531,10 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
 
     def score_samples(self, data, Y=None) -> np.ndarray:
         """See :meth:`sklearn.mixture.GaussianMixture.score_samples`"""
-        return (self.__expect(data)[1] > self.score_threshold).astype(float)
+        if self.score_threshold is None:
+            return self.__expect(data)[1]
+        else:
+            return (self.__expect(data)[1] > self.score_threshold).astype(float)
 
     def score(self, data, y=None) -> float:  # pylint: disable=arguments-differ
         """See :meth:`sklearn.mixture.GaussianMixture.score`"""

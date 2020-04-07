@@ -211,7 +211,6 @@ class SpatialModel(BaseModel):
         # https://www.visiondummy.com/2014/04/geometric-interpretation-covariance-matrix/
         self.__covs[np.any(np.isnan(self.__covs), axis=1)] = 0
         degenerated = np.min(np.linalg.eigvals(self.__covs), axis=1) < self.min_eigval
-        print(np.sum(degenerated))
         return degenerated
 
     def score_samples(self, data, y=None) -> np.ndarray:
