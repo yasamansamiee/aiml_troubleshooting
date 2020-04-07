@@ -47,7 +47,8 @@ class SpatialModel(BaseModel):
     ----------
     BaseModel : [type]
         [description]
-
+    bix: Optional[float]
+        TBD
     n_dim : int
         The number of dimensions of the feature space, by default 2
     limits : Optional[Tuple[np.ndarray, np.ndarray]]
