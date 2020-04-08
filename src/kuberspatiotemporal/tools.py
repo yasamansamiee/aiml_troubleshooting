@@ -165,7 +165,7 @@ def make_ellipses(gmm: "GaussianMixtureModel", ax, min_weight=0.0):
 
 
 def repr_list_ndarray(x: np.ndarray) -> str:
-    return f"`list of length {len(x)}, elements of shape {np.asarray(x).shape[1:]}`"
+    return f"`list of length {len(x)}, elements of shapes {[i.shape for i in x]}`"
 
 
 def repr_ndarray(x: np.ndarray) -> str:

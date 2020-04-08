@@ -47,7 +47,8 @@ class SpatialModel(BaseModel):
     ----------
     BaseModel : [type]
         [description]
-
+    bix: Optional[float]
+        TBD
     n_dim : int
         The number of dimensions of the feature space, by default 2
     limits : Optional[Tuple[np.ndarray, np.ndarray]]
@@ -211,7 +212,6 @@ class SpatialModel(BaseModel):
         # https://www.visiondummy.com/2014/04/geometric-interpretation-covariance-matrix/
         self.__covs[np.any(np.isnan(self.__covs), axis=1)] = 0
         degenerated = np.min(np.linalg.eigvals(self.__covs), axis=1) < self.min_eigval
-        print(np.sum(degenerated))
         return degenerated
 
     def score_samples(self, data, y=None) -> np.ndarray:
