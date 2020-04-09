@@ -47,8 +47,9 @@ class SpatialModel(BaseModel):
     ----------
     BaseModel : [type]
         [description]
-    bix: Optional[float]
-        TBD
+    box: float or ndarray
+        Defines the box to be used when computing cumulative density 
+        function. This parameter might make data processing much slow.
     n_dim : int
         The number of dimensions of the feature space, by default 2
     limits : Optional[Tuple[np.ndarray, np.ndarray]]
@@ -66,7 +67,7 @@ class SpatialModel(BaseModel):
         default=None
     )  # TODO should have a validator
     min_eigval: float = attr.ib(default=1e-5)
-    box: Optional[float] = attr.ib(default=None)
+    box: Optional[Union[float, np.array]] = attr.ib(default=None)
 
     # Internal state variables
     __means: Optional[np.ndarray] = attr.ib(default=None, repr=repr_ndarray)
@@ -213,7 +214,7 @@ class SpatialModel(BaseModel):
         self.__covs[np.any(np.isnan(self.__covs), axis=1)] = 0
         degenerated = np.min(np.linalg.eigvals(self.__covs), axis=1) < self.min_eigval
         return degenerated
-        
+
     def rvs(self, n_samples: int = 1, idx: Optional[np.ndarray] = None) -> np.ndarray:
 
         if idx is None:
