@@ -14,7 +14,7 @@ __status__ = "alpha"
 __date__ = "2020-03-18"
 
 
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Union
 import logging
 
 # from sklearn.datasets import make_spd_matrix
@@ -228,4 +228,26 @@ class SpatialModel(BaseModel):
         rvs = np.swapaxes(rvs, 0, 1)
 
         return rvs[idx != 0].reshape(-1, self.n_dim)
+    
+    def compute_loa(self, data: np.ndarray)-> np.ndarray:
+        """
+        Compute the probability that the point belongs to the model.
+
+        Note that only works if the features return probabilities--not *densitites*.
+
+        Parameters
+        ----------
+        data : np.ndarray
+            see :meth:`_BaseModel__expect`
+
+        Returns
+        -------
+        np.ndarray
+            Array with the probability of the data belonging to the model (n_samples,)
+        """
+        if not self.box is None:
+            neg_probabilities = 1.0 - self.expect(data)[np.newaxis, :]
+        else:
+            neg_probabilities = 1.0 - self.expect(data) * self._weights[np.newaxis, :]
+        return 1.0 - np.prod(neg_probabilities, axis=1)
 
