@@ -291,9 +291,8 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
         np.ndarray
             Array with the probability of the data belonging to the model (n_samples,)
         """
-        _, log_probabilities, _ = self.expect(data)
-        neg_probabilities = 1.0 - np.exp(log_probabilities)
-        return 1.0 - np.prod(neg_probabilities)
+        neg_probabilities = 1.0 - self.expect(data) * self._weights[np.newaxis, :]
+        return 1.0 - np.prod(neg_probabilities, axis=1)
 
     def __maximize(self):
         """
