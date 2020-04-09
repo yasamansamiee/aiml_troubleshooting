@@ -213,26 +213,7 @@ class SpatialModel(BaseModel):
         self.__covs[np.any(np.isnan(self.__covs), axis=1)] = 0
         degenerated = np.min(np.linalg.eigvals(self.__covs), axis=1) < self.min_eigval
         return degenerated
-
-    def score_samples(self, data, y=None) -> np.ndarray:
-
-        if not self.box is None:
-
-            return np.sum(
-                [
-                    weight * boxed_cdf(data, self.box, mean, sigma, None, 1e-5, 1e-5)
-                    for sigma, mean, weight in zip(self.__covs, self.__means, self._weights)
-                ]
-            )
-        else:
-            return super().score_samples(data, y)
-
-    def score(self, data, y=None) -> float:
-        if not self.box is None:
-
-            return self.score_samples(data).mean()
-        else:
-            return super().score(data, y)
+        
     def rvs(self, n_samples: int = 1, idx: Optional[np.ndarray] = None) -> np.ndarray:
 
         if idx is None:
