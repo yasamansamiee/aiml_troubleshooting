@@ -255,7 +255,7 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
             responsibilities = weighted_prob / np.sum(weighted_prob, axis=1)[:, np.newaxis]
 
         if np.any(np.isnan(responsibilities)):
-            logger.Error(
+            logger.error(
                 "NaN in responsibilities (%f). Please revise your random start values",
                 np.sum(np.isnan(responsibilities)),
             )
@@ -562,6 +562,8 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
             if self.score_threshold is None:
                 return self.__expect(data)[1]
             else:
+                print(self.__expect(data))
+                print((self.__expect(data)[1] > self.score_threshold).astype(float))
                 return (self.__expect(data)[1] > self.score_threshold).astype(float)
         else:
             return self.compute_loa(data)
