@@ -127,8 +127,8 @@ class SpatialModel(BaseModel):
 
             a = np.array(
                 [
-                    weight * boxed_cdf(data, self.box, mean, sigma, None, 1e-5, 1e-5)
-                    for sigma, mean, weight in zip(self.__covs, self.__means, self._weights)
+                    boxed_cdf(data, self.box, mean, sigma, None, 1e-5, 1e-5)
+                    for sigma, mean in zip(self.__covs, self.__means)
                 ]
             )
             logger.debug(a.shape)
@@ -228,26 +228,3 @@ class SpatialModel(BaseModel):
         rvs = np.swapaxes(rvs, 0, 1)
 
         return rvs[idx != 0].reshape(-1, self.n_dim)
-    
-    def compute_loa(self, data: np.ndarray)-> np.ndarray:
-        """
-        Compute the probability that the point belongs to the model.
-
-        Note that only works if the features return probabilities--not *densitites*.
-
-        Parameters
-        ----------
-        data : np.ndarray
-            see :meth:`_BaseModel__expect`
-
-        Returns
-        -------
-        np.ndarray
-            Array with the probability of the data belonging to the model (n_samples,)
-        """
-        if not self.box is None:
-            neg_probabilities = 1.0 - self.expect(data)[np.newaxis, :]
-        else:
-            neg_probabilities = 1.0 - self.expect(data) * self._weights[np.newaxis, :]
-        return 1.0 - np.prod(neg_probabilities, axis=1)
-
