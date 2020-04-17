@@ -569,15 +569,12 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
 
     def score_samples(self, data, Y=None) -> np.ndarray:
         """See :meth:`sklearn.mixture.GaussianMixture.score_samples`"""
-
         if not self.loa:
             if not self.score_threshold is None:
-                return (self.__expect(data)[1] > self.score_threshold).astype(float)
+                return (self.__expect(data)[1] > self.score_threshold[0]).astype(float)
 
             if not self.quantiles is None:
-                return ( np.interp( self.__expect(data)[1], self.quantiles, [0.0,1.0], 0.0, 1.0))
-
-            return self.__expect(data)[1]
+                return np.interp(self.__expect(data)[1], self.quantiles, [0.0,1.0], 0.0, 1.0)
         else:
             return self.compute_loa(data)
 
