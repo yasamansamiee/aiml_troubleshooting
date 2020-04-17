@@ -90,6 +90,8 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
 
     score_threshold: Optional[float] = attr.ib(default=None)
 
+    quantiles: Optional[Tuple[float,float]] = attr.ib(default=None)
+
     random_reset: bool = attr.ib(default=False)
 
     loa: bool = attr.ib(default=False)
@@ -120,7 +122,7 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
     # Public methods
     ###############################################################################################
 
-    def get_score_threshold(self, data: np.ndarray, quantile=0.05):
+    def get_score_threshold(self, data: np.ndarray, lower_quantile=0.05, upper_quantile=0.95 ) -> Tuple[float,float]:
         """
         Computes a threshold based on a trained model.
 
@@ -133,10 +135,20 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
             [description]
         data : np.ndarray
             [description]
-        quantile : float, optional
+        lower_quantile : float, optional
             [description], by default 0.95
+        upper_quantile : float, optional
+            [description], by default 0.95
+
+        Returns
+        -------
+        lower_quantile : float
+            The lower quantile value of the data
+        anti_quantile: float
+            The upper quantile of the data
         """
-        return np.quantile(self.__expect(data)[1], quantile)
+        log_probs = self.__expect(data)[1]
+        return np.quantile(log_probs, lower_quantile), np.quantile(log_probs, upper_quantile)
 
     def sync(self, w0_: np.ndarray, s0_: np.ndarray):
         """
@@ -255,7 +267,7 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
             responsibilities = weighted_prob / np.sum(weighted_prob, axis=1)[:, np.newaxis]
 
         if np.any(np.isnan(responsibilities)):
-            logger.Error(
+            logger.error(
                 "NaN in responsibilities (%f). Please revise your random start values",
                 np.sum(np.isnan(responsibilities)),
             )
@@ -291,9 +303,8 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
         np.ndarray
             Array with the probability of the data belonging to the model (n_samples,)
         """
-        _, log_probabilities, _ = self.expect(data)
-        neg_probabilities = 1.0 - np.exp(log_probabilities)
-        return 1.0 - np.prod(neg_probabilities)
+        neg_probabilities = 1.0 - self.expect(data) * self._weights[np.newaxis, :]
+        return 1.0 - np.prod(neg_probabilities, axis=1)
 
     def __maximize(self):
         """
@@ -558,12 +569,12 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
 
     def score_samples(self, data, Y=None) -> np.ndarray:
         """See :meth:`sklearn.mixture.GaussianMixture.score_samples`"""
-
         if not self.loa:
-            if self.score_threshold is None:
-                return self.__expect(data)[1]
-            else:
-                return (self.__expect(data)[1] > self.score_threshold).astype(float)
+            if not self.score_threshold is None:
+                return (self.__expect(data)[1] > self.score_threshold[0]).astype(float)
+
+            if not self.quantiles is None:
+                return np.interp(self.__expect(data)[1], self.quantiles, [0.0,1.0], 0.0, 1.0)
         else:
             return self.compute_loa(data)
 

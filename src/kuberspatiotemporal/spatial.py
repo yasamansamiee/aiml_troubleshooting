@@ -14,7 +14,7 @@ __status__ = "alpha"
 __date__ = "2020-03-18"
 
 
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Union
 import logging
 
 # from sklearn.datasets import make_spd_matrix
@@ -47,8 +47,9 @@ class SpatialModel(BaseModel):
     ----------
     BaseModel : [type]
         [description]
-    bix: Optional[float]
-        TBD
+    box: float or ndarray
+        Defines the box to be used when computing cumulative density 
+        function. This parameter might make data processing much slow.
     n_dim : int
         The number of dimensions of the feature space, by default 2
     limits : Optional[Tuple[np.ndarray, np.ndarray]]
@@ -66,7 +67,7 @@ class SpatialModel(BaseModel):
         default=None
     )  # TODO should have a validator
     min_eigval: float = attr.ib(default=1e-5)
-    box: Optional[float] = attr.ib(default=None)
+    box: Optional[Union[float, np.array]] = attr.ib(default=None)
 
     # Internal state variables
     __means: Optional[np.ndarray] = attr.ib(default=None, repr=repr_ndarray)
@@ -126,8 +127,8 @@ class SpatialModel(BaseModel):
 
             a = np.array(
                 [
-                    weight * boxed_cdf(data, self.box, mean, sigma, None, 1e-5, 1e-5)
-                    for sigma, mean, weight in zip(self.__covs, self.__means, self._weights)
+                    boxed_cdf(data, self.box, mean, sigma, None, 1e-5, 1e-5)
+                    for sigma, mean in zip(self.__covs, self.__means)
                 ]
             )
             logger.debug(a.shape)
@@ -214,25 +215,6 @@ class SpatialModel(BaseModel):
         degenerated = np.min(np.linalg.eigvals(self.__covs), axis=1) < self.min_eigval
         return degenerated
 
-    def score_samples(self, data, y=None) -> np.ndarray:
-
-        if not self.box is None:
-
-            return np.sum(
-                [
-                    weight * boxed_cdf(data, self.box, mean, sigma, None, 1e-5, 1e-5)
-                    for sigma, mean, weight in zip(self.__covs, self.__means, self._weights)
-                ]
-            )
-        else:
-            return super().score_samples(data, y)
-
-    def score(self, data, y=None) -> float:
-        if not self.box is None:
-
-            return self.score_samples(data).mean()
-        else:
-            return super().score(data, y)
     def rvs(self, n_samples: int = 1, idx: Optional[np.ndarray] = None) -> np.ndarray:
 
         if idx is None:
@@ -246,4 +228,3 @@ class SpatialModel(BaseModel):
         rvs = np.swapaxes(rvs, 0, 1)
 
         return rvs[idx != 0].reshape(-1, self.n_dim)
-
