@@ -45,10 +45,11 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
             Number of output dimensions, by default 2
         online_learning : bool
             Switch between online and batch learning, by default :code:`False`
-        score_threshold : float
+        score_threshold : float or None
             Threshold for assigning considering a sample to be generated
             by the mixture distribution. Use :meth:`get_score_threshold`
-            to derive this value, by default 0
+            to derive this value. If :code:`None`, return logs of the probabilities (densities or masses).
+            By default None
         n_components : int
             Number of mixture components, by default 100
         decay: float
@@ -61,6 +62,8 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
         random_reset : bool
             Reasign irrelevant components with random values, TODO: Not tested,
             by default: False
+        loa: bool
+            see :meth:`compute_loa`, by default: False
         n_iterations : int
             In case of batch learning, this number refer to the maximal number of
             alternations in the EM algorith. In online learning, this parameter is
@@ -85,10 +88,13 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
 
     n_iterations: int = attr.ib(default=100)
 
-    score_threshold: float = attr.ib(default=0)
+    score_threshold: Optional[float] = attr.ib(default=None)
 
+    quantiles: Optional[Tuple[float,float]] = attr.ib(default=None)
 
     random_reset: bool = attr.ib(default=False)
+
+    loa: bool = attr.ib(default=False)
 
     ###############################################################################################
     # Private & protected / internal attributes (document inline)
@@ -100,9 +106,7 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
     #: .. math::
     #:
     #:     S_0 = \left( \sum_{t\in T} \mathbb E[\delta_i(x)|y_{T},\Phi] \right)_{i \in I}
-    _sufficient_statistics: List[np.ndarray] = attr.ib(
-        factory=list, repr=repr_list_ndarray
-    )
+    _sufficient_statistics: List[np.ndarray] = attr.ib(factory=list, repr=repr_list_ndarray)
 
     #: Ratios :math:`\nu_i \sim \text{Beta}(1,\alpha)`
     #: for the stick-breaking process (if :attr:`nonparametric` is :code:`True`)
@@ -118,7 +122,7 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
     # Public methods
     ###############################################################################################
 
-    def get_score_threshold(self, data: np.ndarray, quantile=0.05):
+    def get_score_threshold(self, data: np.ndarray, lower_quantile=0.05, upper_quantile=0.95 ) -> Tuple[float,float]:
         """
         Computes a threshold based on a trained model.
 
@@ -131,10 +135,20 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
             [description]
         data : np.ndarray
             [description]
-        quantile : float, optional
+        lower_quantile : float, optional
             [description], by default 0.95
+        upper_quantile : float, optional
+            [description], by default 0.95
+
+        Returns
+        -------
+        lower_quantile : float
+            The lower quantile value of the data
+        anti_quantile: float
+            The upper quantile of the data
         """
-        return np.quantile(self.__expect(data)[1], quantile)
+        log_probs = self.__expect(data)[1]
+        return np.quantile(log_probs, lower_quantile), np.quantile(log_probs, upper_quantile)
 
     def sync(self, w0_: np.ndarray, s0_: np.ndarray):
         """
@@ -163,7 +177,7 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
         :meth:`__initialize()` which calls overriden/abstract :meth:`initialize()`
         """
 
-        logger.warning("in __attrs_post_init__")
+        # logger.warning("in __attrs_post_init__")
         self.__initialize()
 
     def __initialize(self):
@@ -252,12 +266,16 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
         with np.errstate(divide="ignore", invalid="ignore"):
             responsibilities = weighted_prob / np.sum(weighted_prob, axis=1)[:, np.newaxis]
 
+        if np.any(np.isnan(responsibilities)):
+            logger.error(
+                "NaN in responsibilities (%f). Please revise your random start values",
+                np.sum(np.isnan(responsibilities)),
+            )
+        responsibilities[np.isnan(responsibilities)] = 0
         # FIXME: if sum(weighted_prob) can contain zeros
         # (if a point is claimed by none, then the logarithm has a problem too)
         log_probabilities = np.log(np.sum(weighted_prob, axis=1))
 
-        # logger.warning('NaN in responsibilities %s', np.sum(np.isnan(responsibilities)))
-        responsibilities[np.isnan(responsibilities)] = 0
         # logger.debug("%s %s", weighted_prob.shape, responsibilities.shape)
         assert responsibilities.shape == (
             data.shape[0],
@@ -266,6 +284,27 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
 
         # logger.debug("Responsibilities: %s", responsibilities)
         return responsibilities, log_probabilities, log_probabilities.mean()
+
+    def compute_loa(self, data: np.ndarray)-> np.ndarray:
+        """
+        Compute the probability that the point belongs to the model.
+
+        Note that only works if the features return probabilities--not *densitites*.
+        In case of the :class:`kuberspatiotemporal.SpatialModel`, that means you need to use the :attr:`kuberspatiotemporal.SpatialModel.box`
+        attribute.
+
+        Parameters
+        ----------
+        data : np.ndarray
+            see :meth:`_BaseModel__expect`
+
+        Returns
+        -------
+        np.ndarray
+            Array with the probability of the data belonging to the model (n_samples,)
+        """
+        neg_probabilities = 1.0 - self.expect(data) * self._weights[np.newaxis, :]
+        return 1.0 - np.prod(neg_probabilities, axis=1)
 
     def __maximize(self):
         """
@@ -498,7 +537,6 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
         propabilities: np.ndarray, shape (n_samples, n_components)
         """
 
-
     @abstractmethod
     def maximize(self):
         """Optimize the model parameters based on the sufficient statistics."""
@@ -531,7 +569,14 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
 
     def score_samples(self, data, Y=None) -> np.ndarray:
         """See :meth:`sklearn.mixture.GaussianMixture.score_samples`"""
-        return (self.__expect(data)[1] > self.score_threshold).astype(float)
+        if not self.loa:
+            if not self.score_threshold is None:
+                return (self.__expect(data)[1] > self.score_threshold[0]).astype(float)
+
+            if not self.quantiles is None:
+                return np.interp(self.__expect(data)[1], self.quantiles, [0.0,1.0], 0.0, 1.0)
+        else:
+            return self.compute_loa(data)
 
     def score(self, data, y=None) -> float:  # pylint: disable=arguments-differ
         """See :meth:`sklearn.mixture.GaussianMixture.score`"""

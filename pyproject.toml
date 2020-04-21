@@ -15,7 +15,7 @@ build = 'build.py' # https://github.com/python-poetry/poetry/issues/11
 
 
 [tool.poetry.dependencies]
-python = "3.7"
+python = "3.7.2"
 scikit-learn = "^0.22.2"
 numpy = "^1.18.1"
 attrs = "^19.3.0"
@@ -30,12 +30,14 @@ pytest = "^5.3.5"
 pyenchant = "^3.0.1"
 doc8 = "^0.8.0"
 nbsphinx = "^0.5.1"
-scipy = "^1.4.1"
+scipy = "1.3.2"
 recommonmark = "^0.6.0"
 matplotlib = "^3.2.0"
 seaborn = "^0.10.0"
 python-minifier = "^2.3.0"
 black = "^19.10b0"
+nb_black = "^1.0.7"
+ipyleaflet = "^0.12.3"
 
 [tool.black]
 line-length = 100

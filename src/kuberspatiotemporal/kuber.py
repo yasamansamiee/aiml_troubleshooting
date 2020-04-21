@@ -18,8 +18,6 @@ import logging
 import numpy as np
 import attr
 
-from scipy.stats import multinomial, multivariate_normal
-
 from .base import BaseModel
 
 logger = logging.getLogger(__name__)
@@ -98,8 +96,8 @@ class KuberModel(BaseModel):
                 if not np.all(self.__pmf <= 1.0):
                     # logger.warning('Probabilities exceed 1.0')
                     self.__pmf = self.__pmf / np.sum(self.__pmf, axis=1)[:, np.newaxis]
-                assert np.all(self.__pmf <= 1.0)
-
+                assert np.all(self.__pmf <= 1.0) 
+                
     def batch(self, data: np.ndarray, responsibilities: np.ndarray):
         assert data.ndim == 2, f"Data should be 2D is {data.ndim}"
         n_samples = data.shape[0]
@@ -130,13 +128,14 @@ class KuberModel(BaseModel):
     def rvs(self, n_samples: int = 1, idx: Optional[np.ndarray] = None) -> np.ndarray:
 
         if idx is None:
-            idx = multinomial(1, self._weights).rvs(size=n_samples)
+            idx = np.random.multinomial(1, self._weights, size=n_samples)
 
-        multinomials_ = [multinomial(1, pmf) for pmf in self.__pmf]
-
-        feat: np.ndarray = np.array(
-            [[np.where(r == 1)[0][0] for r in mn.rvs(size=n_samples)] for mn in multinomials_]
-        ).T
+        try:
+            feat: np.ndarray = np.array(
+                [[np.where(r == 1)[0][0] for r in np.random.multinomial(1, pmf, size=n_samples)] for pmf in self.__pmf]
+            ).T
+        except ValueError as e : 
+            logger.error("%s, %s",e, self.__pmf)
 
         return feat[idx != 0].reshape(-1, self.n_dim)  # pylint: disable=unsubscriptable-object
 
