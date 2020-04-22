@@ -30,12 +30,14 @@ class TestSpatialModel:
         X, ground_truth = spatial
         ground_truth.score_threshold = ground_truth.get_score_threshold(X)
 
-        model = SpatialModel(n_dim=2, min_eigval=1e-5, nonparametric=False, n_iterations=200, n_components=2,
-            score_threshold=ground_truth.score_threshold,
+        model = SpatialModel(n_dim=2, min_eigval=1e-5, nonparametric=False, n_iterations=200, n_components=2
         )
 
 
         # logger.debug(" %f, %f", model.score(X), np.exp(model.score(X)))
+        model.loa = True
+        model.score_threshold = None
+        model.quantiles = ground_truth.score_threshold
 
         model.fit(X)
         score = model.score(X)

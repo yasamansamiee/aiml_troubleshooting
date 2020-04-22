@@ -227,7 +227,7 @@ class TestKuberspatialModel:
             scaling_parameter=0.5,
             nonparametric=True,
             online_learning=False,
-            score_threshold=-5,
+            score_threshold=ground_truth.score_threshold,
             features=[
                 Feature(SpatialModel(n_dim=2, n_components=100), [0, 1]),
                 Feature(KuberModel(n_symbols=3, nonparametric=True, n_components=100), [2]),
