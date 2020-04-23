@@ -1,3 +1,6 @@
+![](https://github.com/acceptto-corp/kuberspatiotemporal/blob/add-badges/coverage.svg)
+![](https://travis-ci.com/acceptto-corp/kuberspatiotemporal.svg?token=xvg6aZWm2phaynNQmftz&branch=master)
+
 # Welcome to kuberspatiotemporal
 
 A package to experiment with probabilistic, heterogeneous mixture models for risk analysis.
