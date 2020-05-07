@@ -90,7 +90,6 @@ class SpatialModel(BaseModel):
         self.__covs = (
             np.tile(np.identity(self.n_dim), (self.n_components, 1, 1))
             # * np.random.rand(self.n_components)[:, np.newaxis, np.newaxis]  # (1/self.n_components)
-            * 0.005
         )
         self._sufficient_statistics += [
             np.zeros((self.n_components, self.n_dim)),
