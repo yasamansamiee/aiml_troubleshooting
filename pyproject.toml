@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "kuberspatiotemporal"
-version = "0.1.0"
+version = "0.1.1"
 description = "A package to experiment with probabilistic, heterogeneous mixture models for risk analysis."
 authors = ["Stefan <stefan.ulbrich@acceptto.com>"]
 readme = "README.md"
