@@ -60,6 +60,9 @@ class SpatialModel(BaseModel):
         to have in one of its main directions. Prevents degenerated
         components. Read the documentation for details, defaults to
         `1e-2`.
+    covar_factor : float
+        Defines the initial variances, i.e., the diagonal values for the 
+        covariance matrices.
     """
 
     # public attributes
@@ -67,6 +70,7 @@ class SpatialModel(BaseModel):
         default=None
     )  # TODO should have a validator
     min_eigval: float = attr.ib(default=1e-5)
+    covar_factor: float = attr.ib(default=0.005)
     box: Optional[Union[float, np.array]] = attr.ib(default=None)
 
     # Internal state variables
@@ -88,9 +92,8 @@ class SpatialModel(BaseModel):
         ) + self.limits[0]
 
         self.__covs = (
-            np.tile(np.identity(self.n_dim), (self.n_components, 1, 1))
+            np.tile(np.identity(self.n_dim), (self.n_components, 1, 1)) * self.covar_factor
             # * np.random.rand(self.n_components)[:, np.newaxis, np.newaxis]  # (1/self.n_components)
-            * 0.005
         )
         self._sufficient_statistics += [
             np.zeros((self.n_components, self.n_dim)),
