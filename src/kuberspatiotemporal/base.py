@@ -23,7 +23,7 @@ from sklearn.base import BaseEstimator, DensityMixin
 import numpy as np
 import attr
 
-from .tools import repr_list_ndarray, repr_ndarray
+from .tools.tools import repr_list_ndarray, repr_ndarray
 
 logger = logging.getLogger(__name__)
 
