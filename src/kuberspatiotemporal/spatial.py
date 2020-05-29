@@ -23,7 +23,7 @@ from scipy.stats import multinomial, multivariate_normal
 import numpy as np
 import attr
 
-from .tools import repr_ndarray, cholesky_precisions
+from .tools.tools import repr_ndarray, cholesky_precisions
 from .base import BaseModel
 
 from .cumulative import boxed_cdf

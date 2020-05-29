@@ -31,7 +31,6 @@ logger = logging.getLogger(__name__)
 
 # Code from pyloa
 
-
 def make_gmm(
     # pylint: disable=bad-continuation
     n_samples=100,
