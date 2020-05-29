@@ -3,18 +3,19 @@ r"""
 Tools to help development and testing.
 """
 
-__author__ = "Stefan Ulbrich"
+__author__ = "Adriana Costa"
 __copyright__ = "Copyright 2018-2020, Acceptto Corporation, All rights reserved."
 __credits__ = "Acceptto Confidential"
-__maintainer__ = "Stefan Ulbrich"
-__email__ = "Stefan.Ulbrich@acceptto.com"
-__date__ = "2020-03-09"
+__maintainer__ = "Adriana Costa"
+__email__ = "adriana.costa@acceptto.com"
+__date__ = "2020-05-28"
 
 import logging
 import sys
 from typing import Tuple
 
 import numpy as np
+import pandas as pd
 
 from sklearn.compose import ColumnTransformer, make_column_transformer
 from sklearn.preprocessing import FunctionTransformer, OrdinalEncoder
@@ -206,6 +207,10 @@ def get_column_transformer(fs, data):
         )
         index["categorical_time"] = [1]
         aux_index = 2
+
+    else:
+        index["numerical_time"] = []
+        index["categorical_time"] = []
 
     # numerical features
     for numerical_column_name in numerical_columns:
