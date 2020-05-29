@@ -20,6 +20,7 @@ import pandas as pd
 from sklearn.compose import ColumnTransformer, make_column_transformer
 from sklearn.preprocessing import FunctionTransformer, OrdinalEncoder
 
+from sklearn.model_selection import train_test_split
 
 logger = logging.getLogger(__name__)
 
@@ -247,3 +248,34 @@ def get_column_transformer(fs, data):
     column_transformer.transformers = transformers
 
     return column_transformer, index
+
+def split_anomaly_dataset(data, column, drop_na=False):
+    """
+    This method splits the dataset into train and test based on a column .
+    
+    For instance, I want to train my model with all the approved request but I would like to test it also on the rejected requests.
+    """
+
+    data_approved = data[data[column] == "approved"]
+    data_rejected = data[data[column] == "rejected"]
+
+    X_train, X_test = train_test_split(data_approved, test_size=0.2)
+
+    y_train = X_train[column]
+    y_test = pd.concat([X_test[column], data_rejected[column]])
+
+    X_test = pd.concat([X_test, data_rejected])
+
+    X_train.drop(column, axis=1, inplace=True)
+    X_test.drop(column, axis=1, inplace=True)
+
+    if drop_na:
+        idx_to_drop_train = X_train.index[X_train.isnull().any(axis=1)].tolist()
+        X_train.drop(index=idx_to_drop_train, inplace=True)
+        y_train.drop(index=idx_to_drop_train, inplace=True)
+
+        idx_to_drop_test = X_test.index[X_test.isnull().any(axis=1)].tolist()
+        X_test.drop(index=idx_to_drop_test, inplace=True)
+        y_test.drop(index=idx_to_drop_test, inplace=True)
+
+    return X_train, X_test, y_train, y_test
