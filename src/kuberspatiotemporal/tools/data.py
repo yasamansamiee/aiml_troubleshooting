@@ -52,6 +52,7 @@ class FeatureSelector:
 
         col: a pandas Series representing a df column. 
         """
+        col.dropna(inplace=True)
         try:
             col.infer_objects().dtypes == "datetime64[ns, UTC]"
             return "time"
@@ -97,15 +98,20 @@ class FeatureSelector:
 
         self.missings = np.array(missings.index[missings])
 
+        if not self.missings:
+            self.missings = np.array([""])
+
     def identify_single_unique(self):
         """
         Return categorical features that have a unique value.
 
         """
-
         singles = self.data.loc[:, self.categorical_features].nunique() == 1
 
         self.single_uniques = np.array(singles.index[singles])
+
+        if not self.single_uniques:
+            self.single_uniques = np.array([""])
 
     def select(self):
         """
