@@ -98,7 +98,7 @@ class FeatureSelector:
 
         self.missings = np.array(missings.index[missings])
 
-        if not self.missings:
+        if len(self.missings) == 0:
             self.missings = np.array([""])
 
     def identify_single_unique(self):
@@ -106,12 +106,11 @@ class FeatureSelector:
         Return categorical features that have a unique value.
 
         """
-        singles = self.data.loc[:, self.categorical_features].nunique() == 1
-
-        self.single_uniques = np.array(singles.index[singles])
-
-        if not self.single_uniques:
+        if len(self.categorical_features) == 0:
             self.single_uniques = np.array([""])
+        else:
+            singles = self.data.loc[:, self.categorical_features].nunique() == 1
+            self.single_uniques = np.array(singles.index[singles])
 
     def select(self):
         """
