@@ -25,10 +25,12 @@ from sklearn.model_selection import train_test_split
 logger = logging.getLogger(__name__)
 
 # Code from pyloa
+
+
 class FeatureSelector:
     """
     Class that will perform feature selection as a preprocessing step.
-    
+
     """
 
     def __init__(self, data):
@@ -84,7 +86,8 @@ class FeatureSelector:
         self.numerical_features = data_dtypes[
             np.where(data_dtypes[:, 1] == "num")[0], 0
         ]
-        self.time_feature = data_dtypes[np.where(data_dtypes[:, 1] == "time")[0], 0]
+        self.time_feature = data_dtypes[np.where(
+            data_dtypes[:, 1] == "time")[0], 0]
 
     def identify_missings(self):
         """
@@ -109,7 +112,8 @@ class FeatureSelector:
         if len(self.categorical_features) == 0:
             self.single_uniques = np.array([""])
         else:
-            singles = self.data.loc[:, self.categorical_features].nunique() == 1
+            singles = self.data.loc[:,
+                                    self.categorical_features].nunique() == 1
             self.single_uniques = np.array(singles.index[singles])
 
     def select(self):
@@ -127,7 +131,8 @@ class FeatureSelector:
         self.categorical_features = np.array(
             list(
                 set(self.categorical_features).symmetric_difference(
-                    np.intersect1d(self.categorical_features, features_to_remove)
+                    np.intersect1d(self.categorical_features,
+                                   features_to_remove)
                 )
             )
         )
@@ -149,7 +154,7 @@ class FeatureSelector:
     def get_categories(self, col):
         """
         Returns categories for a specific categorical feature.
-        
+
         """
         if col not in self.categorical_features:
             logger.warning("Not a valid column.")
@@ -161,7 +166,7 @@ class FeatureSelector:
 def get_column_transformer(fs, data):
     """
     This method returns a ColumnTransformer object based on the columns of a FeatureSelector.
-    
+
     """
 
     time_column = fs.time_feature
@@ -169,7 +174,8 @@ def get_column_transformer(fs, data):
     categorical_columns = fs.categorical_features
 
     # initialize column_transformer
-    column_transformer = make_column_transformer((FunctionTransformer(), "init"))
+    column_transformer = make_column_transformer(
+        (FunctionTransformer(), "init"))
 
     transformers = []
     index = {}
@@ -223,7 +229,8 @@ def get_column_transformer(fs, data):
         transformers.append(
             (
                 numerical_column_name + "_transformer",
-                FunctionTransformer(lambda x: np.array(x).reshape(-1, 1).astype(np.float64)),
+                FunctionTransformer(lambda x: np.array(
+                    x).reshape(-1, 1).astype(np.float64)),
                 str(numerical_column_name),
             )
         )
@@ -254,10 +261,11 @@ def get_column_transformer(fs, data):
 
     return column_transformer, index
 
-def split_anomaly_dataset_(data, column, drop_na=False):
+
+def split_anomaly_dataset(data, column, drop_na=False):
     """
     This method splits the dataset into train and test based on a column .
-    
+
     For instance, I want to train my model with all the approved request but I would like to test it also on the rejected requests.
     """
 
@@ -274,7 +282,8 @@ def split_anomaly_dataset_(data, column, drop_na=False):
     X_test = X_test.drop(columns=[column])
 
     if drop_na:
-        idx_to_drop_train = X_train.index[X_train.isnull().any(axis=1)].tolist()
+        idx_to_drop_train = X_train.index[X_train.isnull().any(
+            axis=1)].tolist()
         X_train = X_train.drop(index=idx_to_drop_train)
         y_train = y_train.drop(index=idx_to_drop_train)
 
