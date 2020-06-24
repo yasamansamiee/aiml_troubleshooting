@@ -223,7 +223,7 @@ def get_column_transformer(fs, data):
         transformers.append(
             (
                 numerical_column_name + "_transformer",
-                FunctionTransformer(lambda x: np.array(x).reshape(-1, 1)),
+                FunctionTransformer(lambda x: np.array(x).reshape(-1, 1).astype(np.float64)),
                 str(numerical_column_name),
             )
         )
@@ -254,7 +254,7 @@ def get_column_transformer(fs, data):
 
     return column_transformer, index
 
-def split_anomaly_dataset(data, column, drop_na=False):
+def split_anomaly_dataset_(data, column, drop_na=False):
     """
     This method splits the dataset into train and test based on a column .
     
@@ -265,22 +265,21 @@ def split_anomaly_dataset(data, column, drop_na=False):
     data_rejected = data[data[column] == "rejected"]
 
     X_train, X_test = train_test_split(data_approved, test_size=0.2)
-
     y_train = X_train[column]
-    y_test = pd.concat([X_test[column], data_rejected[column]])
 
+    y_test = pd.concat([X_test[column], data_rejected[column]])
     X_test = pd.concat([X_test, data_rejected])
 
-    X_train.drop(column, axis=1, inplace=True)
-    X_test.drop(column, axis=1, inplace=True)
+    X_train = X_train.drop(columns=[column])
+    X_test = X_test.drop(columns=[column])
 
     if drop_na:
         idx_to_drop_train = X_train.index[X_train.isnull().any(axis=1)].tolist()
-        X_train.drop(index=idx_to_drop_train, inplace=True)
-        y_train.drop(index=idx_to_drop_train, inplace=True)
+        X_train = X_train.drop(index=idx_to_drop_train)
+        y_train = y_train.drop(index=idx_to_drop_train)
 
         idx_to_drop_test = X_test.index[X_test.isnull().any(axis=1)].tolist()
-        X_test.drop(index=idx_to_drop_test, inplace=True)
-        y_test.drop(index=idx_to_drop_test, inplace=True)
+        X_test = X_test.drop(index=idx_to_drop_test)
+        y_test = y_test.drop(index=idx_to_drop_test)
 
     return X_train, X_test, y_train, y_test
