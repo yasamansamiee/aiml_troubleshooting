@@ -11,14 +11,13 @@ __email__ = "adriana.costa@acceptto.com"
 __date__ = "2020-05-28"
 
 import logging
-import sys
-from typing import Tuple
 
 import numpy as np
 import pandas as pd
 
-from sklearn.compose import ColumnTransformer, make_column_transformer
-from sklearn.preprocessing import FunctionTransformer, OrdinalEncoder
+from sklearn.compose import make_column_transformer
+from sklearn.preprocessing import FunctionTransformer
+from sklearn.preprocessing._encoders import _BaseEncoder
 
 from sklearn.model_selection import train_test_split
 
@@ -161,9 +160,116 @@ class FeatureSelector:
         else:
             return np.sort(self.data.loc[:, col].dropna().unique())
 
+class CategoricalEncoder(_BaseEncoder):
+    """
+    Encode categorical features as an integer array.
 
+    Source: https://frankworkshop.com/2019/11/02/a-better-encoder-for-sklearn/
+    """
+    def __init__(self, cat_index = 'all'):
+        """
+        cat_index is the categorical feature index list
+        """
+        self.dicts = {}
+        self.cat_index = cat_index
+    
+    def fit(self, X, *y):
+        """
+        Fit the CategoricalEncoder to X.
 
-def get_column_transformer(fs, data):
+        Parameters
+        ----------
+        X : array-like, shape [n_samples, n_features]
+            The data to determine the categories of each feature.
+
+        y : None
+            Ignored. This parameter exists only for compatibility with
+            :class:`sklearn.pipeline.Pipeline`.
+        """
+        if X.ndim == 1:
+            X = X[:, np.newaxis]
+
+        if self.cat_index == 'all':
+            self.cat_index = list(range(X.shape[1]))
+
+        for feat in self.cat_index:
+            dic = np.unique(X[:, feat])
+            dic = dict([(i, index) for index, i in enumerate(dic)])
+            self.dicts[feat] = dic
+             
+    def fit_transform(self, X, *y):
+        """
+        Fit CategoricalEncoder to X, then transform X.
+
+        Equivalent to fit(X).transform(X) but more convenient.
+
+        Parameters
+        ----------
+        X : array-like, shape [n_samples, n_features]
+            The data to encode.
+
+        y : None
+            Ignored. This parameter exists only for compatibility with
+            :class:`sklearn.pipeline.Pipeline`.
+
+        Returns
+        -------
+        X_out : sparse matrix if sparse=True else a 2-d array
+            Transformed input.
+        """
+        if X.ndim == 1:
+            X = X[:, np.newaxis]
+
+        if self.cat_index == 'all':
+            self.cat_index = list(range(X.shape[1]))
+
+        X_out = X.copy()
+        for feat in self.cat_index:
+            dic = np.unique(X[:, feat])
+            dic = dict([(i, index) for index, i in enumerate(dic)])
+            self.dicts[feat] = dic
+
+            for i in range(X.shape[0]):
+                X_out[i, feat] = self.unknown_value(X[i, feat], dic)
+
+        return X_out.astype(np.float64)
+         
+    def transform(self, X):
+        """
+        Transform X to categorical codes.
+
+        Parameters
+        ----------
+        X : array-like, shape [n_samples, n_features]
+            The data to encode.
+
+        Returns
+        -------
+        X_out : sparse matrix or a 2-d array
+            Transformed input.
+        """
+        if X.ndim == 1:
+            X = X[:, np.newaxis]
+
+        X_out = X.copy()
+        for feat in self.cat_index:
+            dic = self.dicts[feat]
+
+            for i in range(X.shape[0]):
+                X_out[i, feat] = self.unknown_value(X[i, feat], dic)
+
+        return X_out.astype(np.float64)
+     
+    def unknown_value(self, value, dic): 
+        """
+        This method will set up a new interger for unknown values.
+        """
+        try:
+            return dic[value]
+        except:
+            return len(dic)
+
+def get_column_transformer(fs):
     """
     This method returns a ColumnTransformer object based on the columns of a FeatureSelector.
 
@@ -243,12 +349,8 @@ def get_column_transformer(fs, data):
         transformers.append(
             (
                 categorical_column_name + "_transformer",
-                OrdinalEncoder(
-                    categories=fs.get_categories(categorical_column_name)[
-                        np.newaxis
-                    ].tolist()
-                ),
-                [str(categorical_column_name)],
+                CategoricalEncoder(),
+                str(categorical_column_name),
             )
         )
     index["categorical"] = np.arange(

@@ -77,7 +77,14 @@ class KuberModel(BaseModel):
         assert data.ndim == 2, f"Data should be 2D is {data.ndim}"
 
         assert data.shape[1] == 1, "Data not a column vector"
-        return self.__pmf[:, data.reshape(-1).astype(int)].T
+        
+        if (data >= self.__pmf.shape[1]).any():
+            n_symbols = int(np.max(data) + 1)
+            aux_pmf = np.zeros((self.__pmf.shape[0], n_symbols))
+            aux_pmf[:, 0 : self.__pmf.shape[1]] = self.__pmf
+            return aux_pmf[:, data.reshape(-1).astype(int)].T
+        else:
+            return self.__pmf[:, data.reshape(-1).astype(int)].T
 
     def maximize(self):
 
