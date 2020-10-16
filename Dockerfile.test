@@ -8,4 +8,5 @@ RUN pip3 install --upgrade \
         coverage \
         coverage-badge
 
-RUN pip3 install /opt/dist/*.whl
+RUN pip3 install /opt/dist/*.whl && \
+        poetry install
