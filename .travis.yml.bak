@@ -1,0 +1,21 @@
+language: python
+python:
+    - 3.7.2
+env:
+  global:
+  - TRAVIS_REPO_SLUG: acceptto-corp/kuberspatiotemporal
+  - secure: Oup4JUNDxHLGF1MsT10aEY9c3vzLMwc80sU6Rmc0TjoWa6Unrg2UbRVD8FcuFBhCAb7w5RKTOFy7tY34gcCshNK4UZ4w/X/slDxcpqdgj2Ha+AS94ofJfT4oMBEhE55v0VDr/mYV2ss0/duaZ0thefXvN7s1rfBZxRtSPoYsCBLqOE4rk+jt8nsMxvxzZcHZF0qwab3CGvk4kYp5DSFc6QPa8XCAvCnWpjynqH5FRO5EFu9aAAa3ypp4vg0l+a42eMYlxhJV3k/1hAOKojYzpu6bnPZYeIhvyOHpUp9V1Nd8bLUNW2fvLkjcGbHcTvYmmaD3jm53JsdmuQRRN7dl1hobIKnGVeNibmEeEwfmG+0hMWR9hpM0g2BdOKXllcLVBnJMzgy0AXjXMGnJqpgLuEzHEmiPTFzF4nR2hxSGRaEe2+dTNKwquRfLixQsWuH7K8Avkk/pSxdZZ3vxppJ2y5vrWPCU35p2OW8O9YG2hmC/cs9imqTORvRrFfHB61+8qiSWsj2RINdESODuuLpfgq+EG1Eu+H7wSRLw7Yq8lB20hrMfsIcOvDAjikTlbA0NyvkY0UNi6DUZfnAYW2vpmHy2ftr5E3nPZn1YmVHJjWZf/1pC/2p9Aph5TVZWJJ8onB7y+4PoEogomdli778F93rGrhv0jRgWDDSTRi5vZrM=
+branches:
+    only:
+        - master
+before_install:
+    - pip install poetry
+install: 
+    - poetry install
+    - poetry add coverage coverage-badge
+script:
+    - coverage run -m pytest tests
+    - coverage report -m
+    - coverage-badge -f -o coverage.svg
+    - cd $TRAVIS_BUILD_DIR
+    - sh push.sh

@@ -1,21 +1,47 @@
-language: python
-python:
-    - 3.7.2
+language: minimal
+
+services:
+  - docker
+
 env:
   global:
-  - TRAVIS_REPO_SLUG: acceptto-corp/kuberspatiotemporal
-  - secure: Oup4JUNDxHLGF1MsT10aEY9c3vzLMwc80sU6Rmc0TjoWa6Unrg2UbRVD8FcuFBhCAb7w5RKTOFy7tY34gcCshNK4UZ4w/X/slDxcpqdgj2Ha+AS94ofJfT4oMBEhE55v0VDr/mYV2ss0/duaZ0thefXvN7s1rfBZxRtSPoYsCBLqOE4rk+jt8nsMxvxzZcHZF0qwab3CGvk4kYp5DSFc6QPa8XCAvCnWpjynqH5FRO5EFu9aAAa3ypp4vg0l+a42eMYlxhJV3k/1hAOKojYzpu6bnPZYeIhvyOHpUp9V1Nd8bLUNW2fvLkjcGbHcTvYmmaD3jm53JsdmuQRRN7dl1hobIKnGVeNibmEeEwfmG+0hMWR9hpM0g2BdOKXllcLVBnJMzgy0AXjXMGnJqpgLuEzHEmiPTFzF4nR2hxSGRaEe2+dTNKwquRfLixQsWuH7K8Avkk/pSxdZZ3vxppJ2y5vrWPCU35p2OW8O9YG2hmC/cs9imqTORvRrFfHB61+8qiSWsj2RINdESODuuLpfgq+EG1Eu+H7wSRLw7Yq8lB20hrMfsIcOvDAjikTlbA0NyvkY0UNi6DUZfnAYW2vpmHy2ftr5E3nPZn1YmVHJjWZf/1pC/2p9Aph5TVZWJJ8onB7y+4PoEogomdli778F93rGrhv0jRgWDDSTRi5vZrM=
+    - TRAVIS_REPO_SLUG=acceptto-corp/kuberspatiotemporal
+    - IMAGE_NAME=064061306967.dkr.ecr.us-west-2.amazonaws.com/kuberspatiotemporal
+    - AWS_DEFAULT_REGION=us-west-2
+    # AWS KEY ID
+    - secure: wxdVZm23aQFxeTNSPOieeJVkabrrzj7XrgKpjGfJXak6cTeYY5YUXF82itiU+0rSLmdQB2FA4CQccTSUmytvX+zQRbhIKJHl51Bs3ruMaus3WJGUPV3WZe3u11gIeqkDq5r6KkZdADFPoBeMqmAmVCfrn2v8ifc36rB+bWKYEbZCWZiQxcfztA/NxfRdfVs4xMHrcSR9RKlJaCELPVUOT1VeeQn6ih+GpIlK9jLdJRfKqyy6K6ZTke1DpPKVFQ78YOMBkc3PLDqNUgyhmgPDfCSxx1bFbt0tZ9LFi1hDjfLzLcJUoMtc+JIGrShoY+/iVl7TXbYrK1eJ91VEHu6UAv4wGHIqiWWF9zghHVfCoLWc60NjekfDbyOhJUFENZhq8jPAEgCeDa9zgnTjvq9HnPvTB+2gm9y+wY3+3A6ZdJKUp+XjEzmLbH+4JAommdneN1NuW51YeJPqK77dvEZ+I1ymrl6rDgWtcrh5/E8F+AGbIlctzS/IiZpTIxeH+FTHZQ1lJ8jUFd+52cH0klXeCLocZ/La6sWRW5zMrAJUJSiz5GqLGgDDICzxtx6LMj5DfYu/6ALcAA+8hDieXB68AvGYdXpm3a04YKG80u0wc3bX9tWifreSBqbq7YH8AeBNz+KLYbHFxBG+FaYMwd9u895ZVEIbBtU6sROmcvZuhNk=
+    # AWS KEY SECRET
+    - secure: YT+uniJrERYDKYQz9aMRtwA4V9SPBnl3vEJHsE/cYfg0qoLgY66mbtOZlajSoqxnfeYgwEj0Kgy8shjw+Fh7hfV5i4tjASnF3m/PXpesT9Dhj2JslMi4lxIHHn6vc5/Pq5d9qxeK9OT6nf9RGw14bcpviHi+WaArlMWSM87wRfkd7O2dJKXZ42epIP6tjUKO07GBvR+TJZ05zEd5+sunMNLf3sxZVTVbYB2b+CnMRwCdLmoQqyhlHjJ0jjASWfBIUsQZVebBPL6wIrwacC7quKmN53aQgJetlmndchjrh4/nXOenrVANFYiNoDjW3w86upy6tEr2IZhtyKu2+Z8RcDC7JGovnPWYSB7wvr0BSQBtbn1geoLDq77C2i478i0H9XYnbzPPm3BoJ2q8YT8o7Z3YNsdZtyHV51+KmFDggTWEyqZ5OirTiYjYrUVo+IhKzt52Z4xMqpiszjf3HELHe40Ofqj/X7/B+UOQ12miLYGDRGofz7EtDAgcQ2fsubFgdDcT5EhKn7x6Hgs/MaNN8B3R5V4TD9Tsqqg7DZVruNEWznX3mIFN8mqeRCumITGcSifoYkk2JkqagFBs5dHCdbEdqWoLDV62eJ4Qinkq+qsOsaB3YlCpSpbdH4+BbUQCAR+k28vzRcIKzZtOteVEG+329/oBT1pTJDK/t+/oVq4=
+    # GH_USER_EMAIL
+    - secure: CoumiQ/H+Ss50R2B39q22aX6kJoMPlNQrITDEsJk5LTo+VqVRThVEVSqM+qyfCvYappaeBSHyY66PHBC7oa4DRQbXSzrR+sJuKdByac5SAGCEv4I80Bk/WS9s3MqQy00nxFlgTwhoDRo8hCo2MBfB3iB4rWMwuo/zJrLZvs8QNb7sA7zB/E3U75pA5PtxbUov3T+YX/qXQpBZuMk27g2Oe8aOWYDZlJ3U36yA/qvhoYIbiGGZHwxeZFI8UishPHKp/GNoKmPWdJc2QgYKCidrILS8Qi5pOtFS/+Tf42xzn/F6Jvbug6iVaGLWcllvefOl28HohADpQDyOJbwJ6a8dImidvSJp7Pn8Zm+I/qlOMYOlzTcG8l0yWAalhc78VTi8I6AsJAdQxQ8U7eFNqN6itAgWgtvM3JMAg9wG4aWhwyvHOjHRfVdtnv5AEVAzzdfepoXEqEoANX1SRj6lSPGLLH6pOmD0hr4iuCg8pa0mn67uJDm2oRGrSIlcTHJbpjt8YTCLmjpS3jgcTsD3kJfNFYmCi9GHLl6Nw04P1x/4O+Avw1SedLRku6WmhsqhL7fmuaE4b7lNZI5fbMt9cToBHhyxJE7Tr5fkrTvXP5iIp2jicWGiFK5gGHrsoLkCJIP+8NhaOoVwRBLtfy9R+u8UZ4J1aMzDMGXf5/UgvQsQbo=
+    # GH_USER_NAME
+    - secure: RTk1d+wWgj4gp6vb8hcDOlZYRU7FvwKwb8tGuKJcuq+dvzle9ORZeemB7RwtEOf3GYggpsgOnTolEGg1c8oDTqI14tLfnnF/mPbWj7LmtDplm7isouCyUQkOO3bljuCbj4ZfzzL3UYPhpeJxQqj1RELxhixiIzfmMjX8ZsgUnQ1qZlKviUjaldrOQTIXFoxxzcpsYpf+sksQhqk6dk1kMdaqCMXkTPuVKXkl41ll6oe77tREUwDZsSgoHICaBwYKkZZBO2cV6GvlNZsUS/t111modRH8q3A2FDuxvSYfrwUV+UR5bEwbSsQjX/JCXUc6e06STo5kWWLSdvbesXKFve0APy0dd8ppOYk0NJsI6qe1vHxMlIrC8nd3oXDkskhJLkFrkngf/V2JkltvenhX5fwE2D91n3tIU5tvfa7oGOVYOuLmGO4krCCiGmBJ6DKzYqJZyJphv1aeYi00HjzL4Lzg0CN8opsW107fDXh1VJ+GSUysP6Hl/quc+15/Mkynt9kbEIU2zLvhhpqv2DIF0azoagd3DscVqHT4Q0gfdRHfuTAWO2DPRBt7fxp6Uly2436UQPSa3MGmVFS2UmCaVBQ2QobkmApJvmfjH0+kWkG2gfIbcoSG8+dThNfst0C3Gr87RRTxvrPTfrfqhSZGysIZ+lWgSAPed1hiLYr8MEc=
+    # GH KEY > encrypted_0224e3989712_key
+    #- 
+    # GH KEY > encrypted_0224e3989712_iv
+    #- 
+
 branches:
-    only:
-        - master
-before_install:
-    - pip install poetry
-install: 
-    - poetry install
-    - poetry add coverage coverage-badge
+  only:
+    - master
+
+install:
+  - pip install --user awscli
+  - eval $(aws ecr get-login --no-include-email)
+  - env
+
 script:
-    - coverage run -m pytest tests
-    - coverage report -m
-    - coverage-badge -f -o coverage.svg
-    - cd $TRAVIS_BUILD_DIR
-    - sh push.sh
+  - docker build --pull --cache-from "$IMAGE_NAME" --tag "$IMAGE_NAME" .
+  - docker build --cache-from "$IMAGE_NAME-test" --tag "$IMAGE_NAME-test" -f Dockerfile.test .
+  - docker run --rm 
+    -e TRAVIS_REPO_SLUG=$TRAVIS_REPO_SLUG 
+    -e TRAVIS_BUILD_NUMBER=$TRAVIS_BUILD_NUMBER 
+    -e encrypted_0224e3989712_key=$encrypted_0224e3989712_key 
+    -e encrypted_0224e3989712_iv=$encrypted_0224e3989712_iv 
+    -e GH_USER_NAME=$GH_USER_NAME 
+    -e GH_USER_EMAIL=$GH_USER_EMAIL 
+    "$IMAGE_NAME-test" ./run_coverage_update_github.sh
+
+deploy:
+  provider: script
+  script: docker push $IMAGE_NAME
