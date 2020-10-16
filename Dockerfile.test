@@ -1,0 +1,11 @@
+FROM 064061306967.dkr.ecr.us-west-2.amazonaws.com/kuberspatiotemporal
+
+RUN pip3 install --upgrade \
+        pytest \
+        pyenchant \
+        pylint \
+        pylint-exit \
+        coverage \
+        coverage-badge
+
+RUN pip3 install /opt/dist/*.whl
