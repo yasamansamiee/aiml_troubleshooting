@@ -3,9 +3,9 @@
 set -e
 
 # Run tests, generate reports
-coverage run -m pytest tests
-coverage report -m
-coverage-badge -f -o coverage.svg
+# coverage run -m pytest tests
+# coverage report -m
+# coverage-badge -f -o coverage.svg
 #pylint loa || pylint-exit $?
 
 # Configure Git & SSH
