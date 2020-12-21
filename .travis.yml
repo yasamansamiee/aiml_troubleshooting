@@ -31,15 +31,15 @@ install:
 
 script:
   - docker build --pull --cache-from "$IMAGE_NAME" --tag "$IMAGE_NAME" .
-  - docker build --cache-from "$IMAGE_NAME-test" --tag "$IMAGE_NAME-test" -f Dockerfile.test .
-  - docker run --rm 
-    -e TRAVIS_REPO_SLUG=$TRAVIS_REPO_SLUG 
-    -e TRAVIS_BUILD_NUMBER=$TRAVIS_BUILD_NUMBER 
-    -e encrypted_73348c0d1a75_key=$encrypted_73348c0d1a75_key 
-    -e encrypted_73348c0d1a75_iv=$encrypted_73348c0d1a75_iv 
-    -e GH_USER_NAME=$GH_USER_NAME 
-    -e GH_USER_EMAIL=$GH_USER_EMAIL 
-    "$IMAGE_NAME-test" poetry run ./run_coverage_update_github.sh
+  # - docker build --cache-from "$IMAGE_NAME-test" --tag "$IMAGE_NAME-test" -f Dockerfile.test .
+  # - docker run --rm 
+  #   -e TRAVIS_REPO_SLUG=$TRAVIS_REPO_SLUG 
+  #   -e TRAVIS_BUILD_NUMBER=$TRAVIS_BUILD_NUMBER 
+  #   -e encrypted_73348c0d1a75_key=$encrypted_73348c0d1a75_key 
+  #   -e encrypted_73348c0d1a75_iv=$encrypted_73348c0d1a75_iv 
+  #   -e GH_USER_NAME=$GH_USER_NAME 
+  #   -e GH_USER_EMAIL=$GH_USER_EMAIL 
+  #   "$IMAGE_NAME-test" poetry run ./run_coverage_update_github.sh
 
 deploy:
   provider: script
