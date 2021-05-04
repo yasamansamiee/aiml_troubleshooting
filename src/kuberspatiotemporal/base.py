@@ -231,15 +231,23 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
 
             .. math::
 
-                \left(\frac{\pi_i P(x_t=i|y_t,\Phi)}{\sum_{j\in I} \pi_j P(x_t=j|y_t,\Phi)}\right)_{i \in I, t\in T}
+                \begin{aligned}
+                P(x_t=i|y_t,\Phi) &=
+                \Big( P(x_t=i|y_t,\Phi) \Big)_{i \in I, t\in T} \\
+                &=\left(\frac{\pi_i P(y_t|x_t=i,|\Phi)}{\sum_{j\in I} \pi_j P(y_t|x_t=i,\Phi)}\right)_{i \in I, t\in T}
+                \end{aligned}
 
+            ..
+                @Yasaman, this is more inline with http://statweb.stanford.edu/~tibs/sta306bfiles/mixtures-em.pdf
+                slide 6.
+                 
         * *score_samples** : np.ndarray, shape (n_samples,)
             Scores of all samples: Logarithms of the probabilities (or densities) of each sample in data.
             This corresponds to :meth:`sklearn.mixture.GaussianMixture.score_samples`.
 
             .. math::
 
-                \left( \log \left(\sum_{i \in I} \pi_i P(x_t=i|y_t,\Phi) \right)\right)_{t \in T}
+                \left( \log \left(\sum_{i \in I} \pi_i P(y_t|x_t=i,\Phi) \right)\right)_{t \in T}
 
         * **score**: float
             Score: Mean of the logarithms of the probabilities (or densities)  of each sample in data.
@@ -248,8 +256,10 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
 
             .. math::
 
-                \frac{1}{|T|} \sum_{t \in T} \left( \log \left(\sum_{i \in I} \pi_i P(x_t=i|y_t,\Phi)\right) \right)
+                \frac{1}{|T|} \sum_{t \in T} \left( \log \left(\sum_{i \in I} \pi_i P(y_t|x_t=i,\Phi)\right) \right)
 
+
+        Following the notation introduced in :meth:`expect`.
 
         Parameters
         ----------
@@ -290,7 +300,8 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
         Compute the probability that the point belongs to the model.
 
         Note that only works if the features return probabilities--not *densitites*.
-        In case of the :class:`kuberspatiotemporal.SpatialModel`, that means you need to use the :attr:`kuberspatiotemporal.SpatialModel.box`
+        In case of the :class:`kuberspatiotemporal.SpatialModel`, that means you need to use 
+        the :attr:`kuberspatiotemporal.SpatialModel.box`
         attribute.
 
         Parameters
@@ -523,10 +534,14 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
         """
         Expectation step.
 
-        Subclasses must compute the probability for each sample and all
-        components the probability that the point belongs to
-        the component.
+        Subclasses must compute the probability (or density) for each sample (:math:`y_t`) and all
+        components (:math:`x_t = i`) the probability given the model :math:`\Phi`. 
 
+        .. math::
+
+            \Big( P(y_t | x_t =i , \Phi) \Big)_{t,i}
+
+        
         Parameters
         ----------
         data : np.ndarray, shape (n_samples, n_dim)
