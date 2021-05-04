@@ -64,6 +64,8 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
             by default: False
         loa: bool
             see :meth:`compute_loa`, by default: False
+        noise_probability: float or None
+            see :meth:`score_bayes`.
         n_iterations : int
             In case of batch learning, this number refer to the maximal number of
             alternations in the EM algorith. In online learning, this parameter is
@@ -89,6 +91,8 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
     n_iterations: int = attr.ib(default=100)
 
     score_threshold: Optional[float] = attr.ib(default=None)
+
+    noise_probability: Optional[float] = attr.ib(default=None)    
 
     quantiles: Optional[Tuple[float,float]] = attr.ib(default=None)
 
@@ -582,8 +586,12 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
 
     # pylint: disable=unused-argument
 
-    def score_samples(self, data, Y=None) -> np.ndarray:
-        """See :meth:`sklearn.mixture.GaussianMixture.score_samples`"""
+    def score_samples(self, data, Y=None, use_bayes=False) -> np.ndarray:
+        """See :meth:`sklearn.mixture.GaussianMixture.score_samples`."""
+
+        if noise_probability is not None:
+            return self.score_bayes(data)
+
         if not self.loa:
             if not self.score_threshold is None:
                 return (self.__expect(data)[1] > self.score_threshold[0]).astype(float)
@@ -592,6 +600,36 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
                 return np.interp(self.__expect(data)[1], self.quantiles, [0.0,1.0], 0.0, 1.0)
         else:
             return self.compute_loa(data)
+
+    def score_bayes(self, data) -> np.ndarray:
+        r"""
+        Scores based on explicitely modeling noise. Therefore, a probablity :math:`\epsilon` has to be specified
+        that defines how likely a data point does not belong to the mixture model:
+
+        .. math::
+
+            \epsilon := p(x \not \in I)
+        
+        Whether a sample is drawn from the mixture distribution or is noise is distributed by a 
+        binomial distribution. The weights (i.e., the probabilities for each component) change 
+        then to 
+
+        .. math::
+
+            \bar \pi_i := \pi_i \cdot (1-\epsilon)
+
+        and the probability of whether a sample belongs to the mixture model can be determined
+        by
+
+        .. math::
+
+            \begin{aligned}
+            P(x_t \in I|y_t,\Phi, \epsilon) &= \sum_{i\in I} P(x_t=i|y_t,\Phi, \epsilon) \\
+            &= \sum_{i\in I} \frac{\bar \pi_i \cdot P(y_t|x_t=i,|\Phi)}{\sum_{j\in I} \bar\pi_j\cdot P(y_t|x_t=i,\Phi) + \epsilon}
+            \end{aligned}
+        """
+
+        raise NotImplementedError("Not implemented yet")
 
     def score(self, data, y=None) -> float:  # pylint: disable=arguments-differ
         """See :meth:`sklearn.mixture.GaussianMixture.score`"""
