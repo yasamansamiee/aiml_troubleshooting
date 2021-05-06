@@ -64,6 +64,8 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
             by default: False
         loa: bool
             see :meth:`compute_loa`, by default: False
+        noise_probability: float or None
+            see :meth:`score_bayes`.
         n_iterations : int
             In case of batch learning, this number refer to the maximal number of
             alternations in the EM algorith. In online learning, this parameter is
@@ -89,6 +91,8 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
     n_iterations: int = attr.ib(default=100)
 
     score_threshold: Optional[float] = attr.ib(default=None)
+
+    noise_probability: Optional[float] = attr.ib(default=None)    
 
     quantiles: Optional[Tuple[float,float]] = attr.ib(default=None)
 
@@ -231,15 +235,23 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
 
             .. math::
 
-                \left(\frac{\pi_i P(x_t=i|y_t,\Phi)}{\sum_{j\in I} \pi_j P(x_t=j|y_t,\Phi)}\right)_{i \in I, t\in T}
+                \begin{aligned}
+                P(x_t=i|y_t,\Phi) &=
+                \Big( P(x_t=i|y_t,\Phi) \Big)_{i \in I, t\in T} \\
+                &=\left(\frac{\pi_i P(y_t|x_t=i,|\Phi)}{\sum_{j\in I} \pi_j P(y_t|x_t=i,\Phi)}\right)_{i \in I, t\in T}
+                \end{aligned}
 
+            ..
+                @Yasaman, this is more inline with http://statweb.stanford.edu/~tibs/sta306bfiles/mixtures-em.pdf
+                slide 6.
+                 
         * *score_samples** : np.ndarray, shape (n_samples,)
             Scores of all samples: Logarithms of the probabilities (or densities) of each sample in data.
             This corresponds to :meth:`sklearn.mixture.GaussianMixture.score_samples`.
 
             .. math::
 
-                \left( \log \left(\sum_{i \in I} \pi_i P(x_t=i|y_t,\Phi) \right)\right)_{t \in T}
+                \left( \log \left(\sum_{i \in I} \pi_i P(y_t|x_t=i,\Phi) \right)\right)_{t \in T}
 
         * **score**: float
             Score: Mean of the logarithms of the probabilities (or densities)  of each sample in data.
@@ -248,8 +260,10 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
 
             .. math::
 
-                \frac{1}{|T|} \sum_{t \in T} \left( \log \left(\sum_{i \in I} \pi_i P(x_t=i|y_t,\Phi)\right) \right)
+                \frac{1}{|T|} \sum_{t \in T} \left( \log \left(\sum_{i \in I} \pi_i P(y_t|x_t=i,\Phi)\right) \right)
 
+
+        Following the notation introduced in :meth:`expect`.
 
         Parameters
         ----------
@@ -290,7 +304,8 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
         Compute the probability that the point belongs to the model.
 
         Note that only works if the features return probabilities--not *densitites*.
-        In case of the :class:`kuberspatiotemporal.SpatialModel`, that means you need to use the :attr:`kuberspatiotemporal.SpatialModel.box`
+        In case of the :class:`kuberspatiotemporal.SpatialModel`, that means you need to use 
+        the :attr:`kuberspatiotemporal.SpatialModel.box`
         attribute.
 
         Parameters
@@ -523,10 +538,14 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
         """
         Expectation step.
 
-        Subclasses must compute the probability for each sample and all
-        components the probability that the point belongs to
-        the component.
+        Subclasses must compute the probability (or density) for each sample (:math:`y_t`) and all
+        components (:math:`x_t = i`) the probability given the model :math:`\Phi`. 
 
+        .. math::
+
+            \Big( P(y_t | x_t =i , \Phi) \Big)_{t,i}
+
+        
         Parameters
         ----------
         data : np.ndarray, shape (n_samples, n_dim)
@@ -567,8 +586,12 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
 
     # pylint: disable=unused-argument
 
-    def score_samples(self, data, Y=None) -> np.ndarray:
-        """See :meth:`sklearn.mixture.GaussianMixture.score_samples`"""
+    def score_samples(self, data, Y=None, use_bayes=False) -> np.ndarray:
+        """See :meth:`sklearn.mixture.GaussianMixture.score_samples`."""
+
+        if noise_probability is not None:
+            return self.score_bayes(data)
+
         if not self.loa:
             if not self.score_threshold is None:
                 return (self.__expect(data)[1] > self.score_threshold[0]).astype(float)
@@ -577,6 +600,36 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
                 return np.interp(self.__expect(data)[1], self.quantiles, [0.0,1.0], 0.0, 1.0)
         else:
             return self.compute_loa(data)
+
+    def score_bayes(self, data) -> np.ndarray:
+        r"""
+        Scores based on explicitely modeling noise. Therefore, a probablity :math:`\epsilon` has to be specified
+        that defines how likely a data point does not belong to the mixture model:
+
+        .. math::
+
+            \epsilon := p(x \not \in I)
+        
+        Whether a sample is drawn from the mixture distribution or is noise is distributed by a 
+        binomial distribution. The weights (i.e., the probabilities for each component) change 
+        then to 
+
+        .. math::
+
+            \bar \pi_i := \pi_i \cdot (1-\epsilon)
+
+        and the probability of whether a sample belongs to the mixture model can be determined
+        by
+
+        .. math::
+
+            \begin{aligned}
+            P(x_t \in I|y_t,\Phi, \epsilon) &= \sum_{i\in I} P(x_t=i|y_t,\Phi, \epsilon) \\
+            &= \sum_{i\in I} \frac{\bar \pi_i \cdot P(y_t|x_t=i,|\Phi)}{\sum_{j\in I} \bar\pi_j\cdot P(y_t|x_t=i,\Phi) + \epsilon}
+            \end{aligned}
+        """
+
+        raise NotImplementedError("Not implemented yet")
 
     def score(self, data, y=None) -> float:  # pylint: disable=arguments-differ
         """See :meth:`sklearn.mixture.GaussianMixture.score`"""
