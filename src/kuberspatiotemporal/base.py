@@ -27,8 +27,6 @@ from .tools.tools import repr_list_ndarray, repr_ndarray
 
 logger = logging.getLogger(__name__)
 
-# Black and pylint disagree about line continuation
-# pylint: disable=bad-continuation
 
 
 @attr.s
@@ -92,9 +90,9 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
 
     score_threshold: Optional[float] = attr.ib(default=None)
 
-    noise_probability: Optional[float] = attr.ib(default=None)    
+    noise_probability: Optional[float] = attr.ib(default=None)
 
-    quantiles: Optional[Tuple[float,float]] = attr.ib(default=None)
+    quantiles: Optional[Tuple[float, float]] = attr.ib(default=None)
 
     random_reset: bool = attr.ib(default=False)
 
@@ -126,7 +124,9 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
     # Public methods
     ###############################################################################################
 
-    def get_score_threshold(self, data: np.ndarray, lower_quantile=0.05, upper_quantile=0.95 ) -> Tuple[float,float]:
+    def get_score_threshold(
+        self, data: np.ndarray, lower_quantile=0.05, upper_quantile=0.95
+    ) -> Tuple[float, float]:
         """
         Computes a threshold based on a trained model.
 
@@ -244,7 +244,7 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
             ..
                 @Yasaman, this is more inline with http://statweb.stanford.edu/~tibs/sta306bfiles/mixtures-em.pdf
                 slide 6.
-                 
+
         * *score_samples** : np.ndarray, shape (n_samples,)
             Scores of all samples: Logarithms of the probabilities (or densities) of each sample in data.
             This corresponds to :meth:`sklearn.mixture.GaussianMixture.score_samples`.
@@ -299,7 +299,7 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
         # logger.debug("Responsibilities: %s", responsibilities)
         return responsibilities, log_probabilities, log_probabilities.mean()
 
-    def compute_loa(self, data: np.ndarray)-> np.ndarray:
+    def compute_loa(self, data: np.ndarray) -> np.ndarray:
         """
         Compute the probability that the point belongs to the model.
 
@@ -545,7 +545,7 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
 
             \Big( P(y_t | x_t =i , \Phi) \Big)_{t,i}
 
-        
+
         Parameters
         ----------
         data : np.ndarray, shape (n_samples, n_dim)
@@ -589,7 +589,7 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
     def score_samples(self, data, Y=None, use_bayes=False) -> np.ndarray:
         """See :meth:`sklearn.mixture.GaussianMixture.score_samples`."""
 
-        if noise_probability is not None:
+        if self.noise_probability is not None:
             return self.score_bayes(data)
 
         if not self.loa:
@@ -597,7 +597,7 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
                 return (self.__expect(data)[1] > self.score_threshold[0]).astype(float)
 
             if not self.quantiles is None:
-                return np.interp(self.__expect(data)[1], self.quantiles, [0.0,1.0], 0.0, 1.0)
+                return np.interp(self.__expect(data)[1], self.quantiles, [0.0, 1.0], 0.0, 1.0)
         else:
             return self.compute_loa(data)
 
@@ -609,7 +609,7 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
         .. math::
 
             \epsilon := p(x \not \in I)
-        
+
         Whether a sample is drawn from the mixture distribution or is noise is distributed by a 
         binomial distribution. The weights (i.e., the probabilities for each component) change 
         then to 
@@ -629,7 +629,25 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
             \end{aligned}
         """
 
-        raise NotImplementedError("Not implemented yet")
+        # logger.debug(weighted_prob)
+        with np.errstate(divide="ignore", invalid="ignore"):
+
+            weighted_prob = self.expect(data) * self._weights * (1 - self.noise_probability)
+            responsibilities = weighted_prob / (
+                np.sum(weighted_prob, axis=1) + self.noise_probability
+            )
+
+        if np.any(np.isnan(responsibilities)):
+            logger.error(
+                "NaN in responsibilities (%f). Please revise your random start values",
+                np.sum(np.isnan(responsibilities)),
+            )
+
+        responsibilities[np.isnan(responsibilities)] = 0
+        # FIXME: if sum(weighted_prob) can contain zeros
+        # (if a point is claimed by none, then the logarithm has a problem too)
+
+        return responsibilities.sum(axis=1)  # Fixme 1 or 0
 
     def score(self, data, y=None) -> float:  # pylint: disable=arguments-differ
         """See :meth:`sklearn.mixture.GaussianMixture.score`"""
