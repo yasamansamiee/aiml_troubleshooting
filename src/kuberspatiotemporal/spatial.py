@@ -30,10 +30,7 @@ from .cumulative import boxed_cdf
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
-print(__name__)
 
-# Black and pylint disagree about line continuation
-# pylint: disable=bad-continuation
 
 @attr.s
 class SpatialModel(BaseModel):
@@ -48,7 +45,7 @@ class SpatialModel(BaseModel):
     BaseModel : [type]
         [description]
     box: float or ndarray
-        Defines the box to be used when computing cumulative density 
+        Defines the box to be used when computing cumulative density
         function. This parameter might make data processing much slow.
     n_dim : int
         The number of dimensions of the feature space, by default 2
@@ -61,7 +58,7 @@ class SpatialModel(BaseModel):
         components. Read the documentation for details, defaults to
         `1e-2`.
     covar_factor : float
-        Defines the initial variances, i.e., the diagonal values for the 
+        Defines the initial variances, i.e., the diagonal values for the
         covariance matrices.
     """
 
