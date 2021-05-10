@@ -603,12 +603,12 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
 
     def score_bayes(self, data) -> np.ndarray:
         r"""
-        Scores based on explicitely modeling noise. Therefore, a probablity :math:`\epsilon` has to be specified
+        Scores based on explicitely modeling noise. Therefore, a probablity :math:`\pi_\text{noise}` has to be specified
         that defines how likely a data point does not belong to the mixture model:
 
         .. math::
 
-            \epsilon := p(x \not \in I)
+            \pi_\text{noise} := p(x \not \in I)
         
         Whether a sample is drawn from the mixture distribution or is noise is distributed by a 
         binomial distribution. The weights (i.e., the probabilities for each component) change 
@@ -616,7 +616,7 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
 
         .. math::
 
-            \bar \pi_i := \pi_i \cdot (1-\epsilon)
+            \bar \pi_i := \pi_i \cdot (1-\pi_\text{noise})
 
         and the probability of whether a sample belongs to the mixture model can be determined
         by
@@ -624,8 +624,8 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
         .. math::
 
             \begin{aligned}
-            P(x_t \in I|y_t,\Phi, \epsilon) &= \sum_{i\in I} P(x_t=i|y_t,\Phi, \epsilon) \\
-            &= \sum_{i\in I} \frac{\bar \pi_i \cdot P(y_t|x_t=i,|\Phi)}{\sum_{j\in I} \bar\pi_j\cdot P(y_t|x_t=i,\Phi) + \epsilon}
+            P(x_t \in I|y_t,\Phi, \pi_\text{noise}) &= \sum_{i\in I} P(x_t=i|y_t,\Phi, \pi_\text{noise}) \\
+            &= \sum_{i\in I} \frac{\bar \pi_i \cdot P(y_t|x_t=i,|\Phi)}{\sum_{j\in I} \bar\pi_j\cdot P(y_t|x_t=i,\Phi) + \pi_\text{noise}}
             \end{aligned}
         """
 
