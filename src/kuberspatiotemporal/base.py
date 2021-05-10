@@ -615,8 +615,13 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
         then to 
 
         .. math::
-
-            \bar \pi_i := \pi_i \cdot (1-\pi_\text{noise})
+            \begin{aligned}
+            \bar \pi_i &:= \pi_i \cdot (1-\pi_\text{noise})\\
+            \sum_i \pi_i + \pi_\text{noise} &= \sum_i \left( \pi_i \cdot (1-\pi_\text{noise}) 
+            \right) + \pi_\text{noise} \\
+            &= \sum_i \pi_i - \pi_\text{noise}\cdot \underbrace{\sum_i \pi_i}_{=1} 
+            + \pi_\text{noise} = 1
+            \end{aligned}
 
         and the probability of whether a sample belongs to the mixture model can be determined
         by
