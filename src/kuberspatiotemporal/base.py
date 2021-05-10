@@ -617,7 +617,7 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
         .. math::
             \begin{aligned}
             \bar \pi_i &:= \pi_i \cdot (1-\pi_\text{noise})\\
-            \sum_i \pi_i + \pi_\text{noise} &= \sum_i \left( \pi_i \cdot (1-\pi_\text{noise}) 
+            \sum_i \bar\pi_i + \pi_\text{noise} &= \sum_i \left( \pi_i \cdot (1-\pi_\text{noise}) 
             \right) + \pi_\text{noise} \\
             &= \sum_i \pi_i - \pi_\text{noise}\cdot \underbrace{\sum_i \pi_i}_{=1} 
             + \pi_\text{noise} = 1
