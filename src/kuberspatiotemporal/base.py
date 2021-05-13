@@ -634,7 +634,7 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
 
             weighted_prob = self.expect(data) * self._weights * (1 - self.noise_probability)
             responsibilities = weighted_prob / (
-                np.sum(weighted_prob, axis=1) + self.noise_probability
+                np.sum(weighted_prob, axis=1)[:, np.newaxis] + self.noise_probability
             )
 
         if np.any(np.isnan(responsibilities)):
