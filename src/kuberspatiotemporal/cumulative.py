@@ -18,14 +18,36 @@ __all__ = ['boxed_cdf']
 
 from typing import Union
 import numpy as np
-from scipy.stats import mvn
+from scipy.stats import mvn, norm
+import math
 from scipy.stats._multivariate import _squeeze_output
 # from ..helpers.numpy import is_broadcastable
 
 # globally disabled (because of SkLearn convention)
 # pylint: disable=too-many-arguments
 
-
+def oned_cdf(centers: np.ndarray, width: float, mean: np.ndarray, sigma: np.ndarray):
+    """Computes the area under the curve for a 1-D normal distribution 
+    given the centers and width of the interval. Only works for the case when 
+    there is one variable in the Spatial module. 
+    Parameters: 
+    -----------
+    centers: ndarary
+        The center of the rectangle for which the area should be calculated
+    width: float
+        The width of the interval
+    mean: 
+        see: data: `scipy.stats.norm`
+    sigma: 
+        see: data `scipy.stats.norm`
+    Returns
+    -------
+    cdf:
+        Area under the rectangle"""
+    cdf1 = norm.cdf(centers + width / 2.0, loc=mean, scale=math.sqrt(sigma))
+    cdf2 = norm.cdf(centers - width / 2.0, loc=mean, scale=math.sqrt(sigma))
+    out = (cdf1 - cdf2).flatten()
+    return out
 
 
 def boxed_cdf(

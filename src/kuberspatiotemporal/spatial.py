@@ -18,7 +18,7 @@ from typing import Optional, Tuple, Union
 import logging
 
 # from sklearn.datasets import make_spd_matrix
-from scipy.stats import multinomial, multivariate_normal
+from scipy.stats import multinomial, multivariate_normal, norm
 
 import numpy as np
 import attr
@@ -26,7 +26,7 @@ import attr
 from .tools.tools import repr_ndarray, cholesky_precisions
 from .base import BaseModel
 
-from .cumulative import boxed_cdf
+from .cumulative import boxed_cdf, oned_cdf
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -124,15 +124,23 @@ class SpatialModel(BaseModel):
             probabilities = np.exp(-0.5 * (self.n_dim * np.log(2 * np.pi) + log_prob) + log_det)
 
         if not self.box is None:
+    
+            if self.n_dim==1:
+                aa = np.array([oned_cdf(data, self.box, mean, sigma) 
+                              for sigma, mean in zip(self.__covs, self.__means)])
+                logger.debug(aa.shape)
+                return aa.T
 
-            a = np.array(
+            elif self.n_dim>1:
+                a = np.array(
                 [
-                    boxed_cdf(data, self.box, mean, sigma, None, 1e-5, 1e-5)
+                    boxed_cdf(data, self.box, mean, sigma, 1000, 1e-5, 1e-5)
                     for sigma, mean in zip(self.__covs, self.__means)
                 ]
-            )
-            logger.debug(a.shape)
-            return a.T
+                )
+
+                logger.debug(a.shape)
+                return a.T
         else:
             return probabilities
 
@@ -228,3 +236,4 @@ class SpatialModel(BaseModel):
         rvs = np.swapaxes(rvs, 0, 1)
 
         return rvs[idx != 0].reshape(-1, self.n_dim)
+
