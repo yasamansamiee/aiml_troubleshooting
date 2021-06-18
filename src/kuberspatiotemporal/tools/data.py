@@ -55,7 +55,7 @@ class FeatureSelector:
         col: a pandas Series representing a df column. 
         """
         col.dropna(inplace=True)
-        if  bool(re.match(r"datetime64.*", str(col.infer_objects().dtypes))):
+        if  pd.api.types.is_datetime64_any_dtype(col):
             return "time"
         else:
             try:
