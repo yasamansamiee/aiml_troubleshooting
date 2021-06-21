@@ -14,6 +14,7 @@ import logging
 
 import numpy as np
 import pandas as pd
+import re
 
 from sklearn.compose import make_column_transformer
 from sklearn.preprocessing import FunctionTransformer
@@ -54,10 +55,9 @@ class FeatureSelector:
         col: a pandas Series representing a df column. 
         """
         col.dropna(inplace=True)
-        try:
-            col.infer_objects().dtypes == "datetime64[ns, UTC]"
+        if  pd.api.types.is_datetime64_any_dtype(col):
             return "time"
-        except:
+        else:
             try:
                 pd.to_numeric(col)
                 if np.array_equal(col, col.astype(int)):
@@ -310,21 +310,22 @@ def get_column_transformer(fs):
             )
         )
         index["numerical_time"] = [0]
+        index["categorical_time"] = []
 
-        #  weekday
-        transformers.append(
-            (
-                time_column_name + "_cat_transformer",
-                FunctionTransformer(
-                    lambda x: np.array(
-                        [pd.Timestamp(ts).weekday() for ts in x]
-                    ).reshape(-1, 1),
-                ),
-                time_column_name,
-            )
-        )
-        index["categorical_time"] = [1]
-        aux_index = 2
+        # #  weekday
+        # transformers.append(
+        #     (
+        #         time_column_name + "_cat_transformer",
+        #         FunctionTransformer(
+        #             lambda x: np.array(
+        #                 [pd.Timestamp(ts).weekday() for ts in x]
+        #             ).reshape(-1, 1),
+        #         ),
+        #         time_column_name,
+        #     )
+        # )
+        # index["categorical_time"] = [1]
+        # aux_index = 2
 
     else:
         index["numerical_time"] = []
@@ -341,7 +342,7 @@ def get_column_transformer(fs):
             )
         )
     index["numerical"] = np.arange(
-        aux_index, aux_index + len(numerical_columns)
+        aux_index + len(time_column), aux_index + len(time_column) + len(numerical_columns)
     ).tolist()
 
     # categorical features
@@ -354,8 +355,8 @@ def get_column_transformer(fs):
             )
         )
     index["categorical"] = np.arange(
-        aux_index + len(numerical_columns),
-        aux_index + len(numerical_columns) + len(categorical_columns),
+        aux_index +  len(time_column) + len(numerical_columns),
+        aux_index +  len(time_column) + len(numerical_columns) + len(categorical_columns),
     ).tolist()
 
     # update transformers
