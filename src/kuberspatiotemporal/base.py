@@ -64,6 +64,9 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
             see :meth:`compute_loa`, by default: False
         noise_probability: float or None
             see :meth:`score_bayes`.
+        noise_probability_training
+            see :meth:`score_bayes`. TBD. Set this parameter when the input data
+            can contain outliers.
         n_iterations : int
             In case of batch learning, this number refer to the maximal number of
             alternations in the EM algorith. In online learning, this parameter is
@@ -91,6 +94,8 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
     score_threshold: Optional[float] = attr.ib(default=None)
 
     noise_probability: Optional[float] = attr.ib(default=None)
+
+    noise_probability_training: Optional[float] = attr.ib(default=None)
 
     quantiles: Optional[Tuple[float, float]] = attr.ib(default=None)
 
@@ -275,16 +280,23 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
         expectaions : Tuple[np.ndarray, np.ndarray, np.ndarray]
 
         """
-        weighted_prob = self.expect(data) * self._weights[np.newaxis, :]
         # logger.debug(weighted_prob)
         with np.errstate(divide="ignore", invalid="ignore"):
-            responsibilities = weighted_prob / np.sum(weighted_prob, axis=1)[:, np.newaxis]
+            if self.noise_probability_training:
+                weighted_prob = self.expect(data) * self._weights * (1 - self.noise_probability_training)
+                responsibilities = weighted_prob / (
+                    np.sum(weighted_prob, axis=1)[:, np.newaxis] + self.noise_probability_training
+                )
+            else:
+                weighted_prob = self.expect(data) * self._weights[np.newaxis, :]
+                responsibilities = weighted_prob / np.sum(weighted_prob, axis=1)[:, np.newaxis]
 
         if np.any(np.isnan(responsibilities)):
             logger.error(
                 "NaN in responsibilities (%f). Please revise your random start values",
                 np.sum(np.isnan(responsibilities)),
             )
+
         responsibilities[np.isnan(responsibilities)] = 0
         # FIXME: if sum(weighted_prob) can contain zeros
         # (if a point is claimed by none, then the logarithm has a problem too)
