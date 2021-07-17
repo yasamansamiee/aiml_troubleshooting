@@ -42,6 +42,7 @@ nb_black = "^1.0.7"
 ipyleaflet = "^0.12.4"
 coverage = "^5.3.1"
 coverage-badge = "^1.0.1"
+dill = "^0.3.3"
 
 [tool.black]
 line-length = 100

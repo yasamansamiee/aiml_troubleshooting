@@ -24,8 +24,6 @@ from .base import BaseModel
 
 logger = logging.getLogger(__name__)
 
-# Black and pylint disagree about line continuation
-# pylint: disable=bad-continuation
 
 
 @attr.s
@@ -114,6 +112,9 @@ class CompoundModel(BaseModel):
 
         # logger.debug(self._sufficient_statistics[0])
 
+    def lazy_init(self, data: np.ndarray):
+        raise NotImplementedError("The compound class does not support this")
+
     def reset(self, fancy_index: np.ndarray):
         for feature in self.features:
             feature.model.reset(fancy_index)
@@ -123,12 +124,7 @@ class CompoundModel(BaseModel):
             feature.model.sync(self._weights, self._sufficient_statistics[0])
 
         probability = np.prod(
-            np.array(
-                [
-                    feature.model.expect(data[:, feature.columns])
-                    for feature in self.features
-                ]
-            ),
+            np.array([feature.model.expect(data[:, feature.columns]) for feature in self.features]),
             axis=0,
         )
         assert probability.shape == (
@@ -154,9 +150,12 @@ class CompoundModel(BaseModel):
         for feature in self.features:
             feature.model.sync(self._weights, self._sufficient_statistics[0])
 
+            # FIXME why the check for None?
             feature.model.batch(
                 data[:, feature.columns] if data is not None else None, responsibilities
             )
+
+            # pylint: disable=protected-access
 
             # Control:
             assert np.allclose(
@@ -178,6 +177,8 @@ class CompoundModel(BaseModel):
             feature.model.online(
                 data[:, feature.columns] if data is not None else None, responsibilities, rate
             )
+
+            # pylint: disable=protected-access
 
             # Control:
             assert np.allclose(

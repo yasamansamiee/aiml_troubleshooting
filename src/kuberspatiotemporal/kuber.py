@@ -22,8 +22,6 @@ from .base import BaseModel
 
 logger = logging.getLogger(__name__)
 
-# Black and pylint disagree about line continuation
-# pylint: disable=bad-continuation
 
 @attr.s
 class KuberModel(BaseModel):
@@ -66,6 +64,18 @@ class KuberModel(BaseModel):
         self.__pmf = np.random.dirichlet([1] * self.n_symbols, self.n_components)
         # logger.debug(self.__pmf.shape)
 
+    def lazy_init(self, data: np.ndarray):
+
+        if data.shape[1] != self.n_dim:
+            raise ValueError(f"Wrong input dimensions {data.shape[1]} != {self.n_dim} ")
+        if data.shape[0] > self.n_components:
+            raise ValueError(
+                f"Too may samples for lazy learning {data.shape[0]} > {self.n_components} "
+            )
+
+        self.__pmf = 0.0
+        self.__pmf[0 : data.shape[0], data.reshape(-1).astype(int)] = 1.0
+
     def reset(self, fancy_index: np.ndarray):
 
         if self.random_reset:
@@ -74,11 +84,17 @@ class KuberModel(BaseModel):
             self.__pmf[fancy_index] = np.zeros(self.n_symbols)
 
     def expect(self, data: np.ndarray) -> np.ndarray:
+
+        # FIXME should be exceptions and not assertions
         assert data.ndim == 2, f"Data should be 2D is {data.ndim}"
 
         assert data.shape[1] == 1, "Data not a column vector"
-        
+
         if (data >= self.__pmf.shape[1]).any():
+            # TODO: why doing these steps (Adriana made them)?
+            # If there is a new symbol, it should just return for them 9
+            # (hasn't been seen during training)
+
             n_symbols = int(np.max(data) + 1)
             aux_pmf = np.zeros((self.__pmf.shape[0], n_symbols))
             aux_pmf[:, 0 : self.__pmf.shape[1]] = self.__pmf
@@ -103,8 +119,8 @@ class KuberModel(BaseModel):
                 if not np.all(self.__pmf <= 1.0):
                     # logger.warning('Probabilities exceed 1.0')
                     self.__pmf = self.__pmf / np.sum(self.__pmf, axis=1)[:, np.newaxis]
-                assert np.all(self.__pmf <= 1.0) 
-                
+                assert np.all(self.__pmf <= 1.0)
+
     def batch(self, data: np.ndarray, responsibilities: np.ndarray):
         assert data.ndim == 2, f"Data should be 2D is {data.ndim}"
         n_samples = data.shape[0]
@@ -114,9 +130,7 @@ class KuberModel(BaseModel):
 
     def online_init(self):
         # P = S1 / S0 => S1 = P * SO
-        self._sufficient_statistics[1] = (
-            self.__pmf * self._sufficient_statistics[0][:, np.newaxis]
-        )
+        self._sufficient_statistics[1] = self.__pmf * self._sufficient_statistics[0][:, np.newaxis]
 
     def online(
         self, data: np.ndarray, responsibilities: np.ndarray, rate: float,
@@ -126,7 +140,6 @@ class KuberModel(BaseModel):
         temp = np.zeros((n_samples, self.n_components, self.n_symbols))
         temp[np.arange(n_samples), :, data.astype(int)] = responsibilities
         self._sufficient_statistics[1] += rate * np.sum(temp, axis=0)
-
 
     def find_degenerated(self):
         # TODO One could check for a symbol with prob 1 but I don't think that's a good idea
@@ -139,11 +152,12 @@ class KuberModel(BaseModel):
 
         try:
             feat: np.ndarray = np.array(
-                [[np.where(r == 1)[0][0] for r in np.random.multinomial(1, pmf, size=n_samples)] for pmf in self.__pmf]
+                [
+                    [np.where(r == 1)[0][0] for r in np.random.multinomial(1, pmf, size=n_samples)]
+                    for pmf in self.__pmf
+                ]
             ).T
-        except ValueError as e : 
-            logger.error("%s, %s",e, self.__pmf)
+        except ValueError as exeption:
+            logger.error("%s, %s", exeption, self.__pmf)
 
         return feat[idx != 0].reshape(-1, self.n_dim)  # pylint: disable=unsubscriptable-object
-
-

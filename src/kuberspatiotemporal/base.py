@@ -316,7 +316,7 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
         Compute the probability that the point belongs to the model.
 
         Note that only works if the features return probabilities--not *densitites*.
-        In case of the :class:`kuberspatiotemporal.SpatialModel`, that means you need to use 
+        In case of the :class:`kuberspatiotemporal.SpatialModel`, that means you need to use
         the :attr:`kuberspatiotemporal.SpatialModel.box`
         attribute.
 
@@ -386,7 +386,7 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
             if not data.shape[1] == self.n_dim:
                 raise ValueError(f"Wrong number input dimensions: {data.shape[1]} != {self.n_dim}")
 
-            responsibilities, temp, score = self.__expect(data)
+            responsibilities, _, score = self.__expect(data)
 
             # Update S_0
             self._sufficient_statistics[0] = np.sum(
@@ -492,6 +492,21 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
         """Initialize the class"""
 
     @abstractmethod
+    def lazy_init(self, data: np.ndarray):
+        """Initialization for lazy learning.
+
+        Lazy implementation in case of few samples. Learning is delayed in favor of a lazy density estimation (cf.
+        `kernel density estimation<https://en.wikipedia.org/wiki/Kernel_density_estimation>`_)
+        until enough data has been acquired. After that, learning is triggered.
+
+        Parameters
+        ----------
+
+            data: np.ndarray
+                The data used for lazy learning
+        """
+
+    @abstractmethod
     def batch(self, data: np.ndarray, responsibilities: np.ndarray):
         """
         Update the sufficient statistics required for batch learning
@@ -513,7 +528,7 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
     def online(
         self, data: np.ndarray, responsibilities: np.ndarray, rate: float,
     ):
-        """
+        r"""
         Update the sufficient statistics required for online learning.
 
         Note that the existing statics is already multiplied with :math:`(1-\gamma)`.
@@ -547,11 +562,11 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
 
     @abstractmethod
     def expect(self, data: np.ndarray) -> np.ndarray:
-        """
+        r"""
         Expectation step.
 
         Subclasses must compute the probability (or density) for each sample (:math:`y_t`) and all
-        components (:math:`x_t = i`) the probability given the model :math:`\Phi`. 
+        components (:math:`x_t = i`) the probability given the model :math:`\Phi`.
 
         .. math::
 
@@ -622,16 +637,16 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
 
             \epsilon := p(x \not \in I)
 
-        Whether a sample is drawn from the mixture distribution or is noise is distributed by a 
-        binomial distribution. The weights (i.e., the probabilities for each component) change 
-        then to 
+        Whether a sample is drawn from the mixture distribution or is noise is distributed by a
+        binomial distribution. The weights (i.e., the probabilities for each component) change
+        then to
 
         .. math::
             \begin{aligned}
             \bar \pi_i &:= \pi_i \cdot (1-\pi_\text{noise})\\
-            \sum_i \bar\pi_i + \pi_\text{noise} &= \sum_i \left( \pi_i \cdot (1-\pi_\text{noise}) 
+            \sum_i \bar\pi_i + \pi_\text{noise} &= \sum_i \left( \pi_i \cdot (1-\pi_\text{noise})
             \right) + \pi_\text{noise} \\
-            &= \sum_i \pi_i - \pi_\text{noise}\cdot \underbrace{\sum_i \pi_i}_{=1} 
+            &= \sum_i \pi_i - \pi_\text{noise}\cdot \underbrace{\sum_i \pi_i}_{=1}
             + \pi_\text{noise} = 1
             \end{aligned}
 
@@ -642,7 +657,8 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
 
             \begin{aligned}
             P(x_t \in I|y_t,\Phi, \pi_\text{noise}) &= \sum_{i\in I} P(x_t=i|y_t,\Phi, \pi_\text{noise}) \\
-            &= \sum_{i\in I} \frac{\bar \pi_i \cdot P(y_t|x_t=i,|\Phi)}{\sum_{j\in I} \bar\pi_j\cdot P(y_t|x_t=i,\Phi) + \pi_\text{noise}}
+            &= \sum_{i\in I} \frac{\bar \pi_i \cdot P(y_t|x_t=i,|\Phi)}{\sum_{j\in I} \bar\pi_j\cdot
+            P(y_t|x_t=i,\Phi) + \pi_\text{noise}}
             \end{aligned}
         """
 
@@ -677,7 +693,7 @@ class BaseModel(DensityMixin, BaseEstimator, ABC):
         assert data.ndim == 2, f"Data should be 2D is {data.ndim}"
 
         if len(data.shape) != 2:
-            raise ValueError(f"Wrong input dimensions (at least 2D)")
+            raise ValueError("Wrong input dimensions (at least 2D)")
 
         if data.shape[0] == 0:
             logger.info("Empty data set")

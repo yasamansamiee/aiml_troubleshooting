@@ -99,6 +99,18 @@ class SpatialModel(BaseModel):
 
         self.__cached_regularization = np.identity(self.n_dim) * 1e-6
 
+    def lazy_init(self, data: np.ndarray):
+
+        if data.shape[1] != self.n_dim:
+            raise ValueError(f"Wrong input dimensions {data.shape[1]} != {self.n_dim} ")
+        if data.shape[0] > self.n_components:
+            raise ValueError(f"Too may samples for lazy learning {data.shape[0]} > {self.n_components} ")
+
+
+        self.__means[0:data.shape[0], :] = data
+
+
+
     def expect(self, data: np.ndarray) -> np.ndarray:
 
         if data.shape[1] != self.n_dim:

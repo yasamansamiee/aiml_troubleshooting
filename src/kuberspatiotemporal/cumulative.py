@@ -26,6 +26,7 @@ from scipy.stats._multivariate import _squeeze_output
 # globally disabled (because of SkLearn convention)
 # pylint: disable=too-many-arguments
 
+<<<<<<< HEAD
 def oned_cdf(centers: np.ndarray, width: float, mean: np.ndarray, sigma: np.ndarray):
     """Computes the area under the curve for a 1-D normal distribution 
     given the centers and width of the interval. Only works for the case when 
@@ -49,6 +50,10 @@ def oned_cdf(centers: np.ndarray, width: float, mean: np.ndarray, sigma: np.ndar
     out = (cdf1 - cdf2).flatten()
     return out
 
+=======
+
+# FIXME: move to tools please
+>>>>>>> Add initial version of lazy learning
 
 def boxed_cdf(
         centers: np.ndarray, width: Union[float, np.array],
