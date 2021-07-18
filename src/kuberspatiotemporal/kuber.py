@@ -73,7 +73,7 @@ class KuberModel(BaseModel):
                 f"Too may samples for lazy learning {data.shape[0]} > {self.n_components} "
             )
 
-        self.__pmf = 0.0
+        self.__pmf[:,:] = 0.0
         self.__pmf[0 : data.shape[0], data.reshape(-1).astype(int)] = 1.0
 
     def reset(self, fancy_index: np.ndarray):

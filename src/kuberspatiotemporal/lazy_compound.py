@@ -11,8 +11,8 @@ __version__ = ""
 __maintainer__ = "Stefan Ulbrich"
 __email__ = "Stefan.Ulbrich@acceptto.com"
 __status__ = "alpha"
-__date__ = "2020-03-19"
-__all__ = ["CompoundModel"]
+__date__ = "2021-07-17"
+__all__ = ["LazyCompoundModel"]
 
 import logging
 import attr
@@ -28,58 +28,17 @@ logger = logging.getLogger(__name__)
 @attr.s
 class LazyCompoundModel(CompoundModel):
     """
-    Lazy implementation in case of few samples. 
-    
-    Learning is delayed in favor of a lazy density estimation (cf. 
-    `kernel density estimation<https://en.wikipedia.org/wiki/Kernel_density_estimation>`_)
+    Lazy implementation in case of few samples.
+
+    Learning is delayed in favor of a lazy density estimation (cf.
+    `kernel density estimation <https://en.wikipedia.org/wiki/Kernel_density_estimation>`_)
     until enough data has been acquired. After that, learning is triggered.
 
 
     Parameters
     ----------
-    features : List[Feature]
-        Description of the composition
-
-    Example
-    -------
-    .. code:: python
-
-        from sklearn.compose import ColumnTransformer
-        from sklearn.preprocessing import FunctionTransformer
-        from sklearn.pipeline import Pipeline
-
-        import pandas as pd
-        d = {'x': [0.5, 0.6], 'y': [0.9, 0.1], 'f2': [1, 2], 'f2': [3, 4]}
-        #     x    y  f1  f2
-        # 0  0.5  0.9   1   3
-        # 1  0.6  0.1   2   4
-
-        pipeline = make_pipeline(
-            make_column_transformer(
-                (FunctionTransformer(lambda x: np.array(x).reshape(-1, 1)), "x"),
-                (FunctionTransformer(lambda x: np.array(x).reshape(-1, 1)), "y"),
-                (FunctionTransformer(lambda x: np.array(x).reshape(-1, 1)), "f1"),
-                (FunctionTransformer(lambda x: np.array(x).reshape(-1, 1)), "f2"),
-            ),
-            CompoundModel(
-                n_components=2,
-                n_dim=4,
-                n_iterations=200,
-                scaling_parameter=1.1,
-                nonparametric=False,
-                online_learning=False,
-                score_threshold=ground_truth.score_threshold,  # has been set in the fixture
-                features=[
-                    Feature(SpatialModel(n_dim=2, n_components=2), [0, 1]),
-                    Feature(KuberModel(n_symbols=3, nonparametric=True, n_components=2), [2]),
-                    Feature(KuberModel(n_symbols=3, nonparametric=True, n_components=2), [3]),
-                ],
-            )
-        )
-
-        pipeline.fit(d)
-        pipeline.score_threshold = pipeline.get_score_threshold(d)
-        pipeline.score(d)
+    min_samples : int
+        The minimal number of points for using non-lazy learning.
 
     See Also
     --------
@@ -102,24 +61,34 @@ class LazyCompoundModel(CompoundModel):
                 f"{self.min_samples} > {self.n_components}"
             )
 
-    def batch(self, data: np.ndarray, responsibilities: np.ndarray):
+    def fit(self, data: np.ndarray, y=None):
+        """See :meth:`sklearn.mixture.GaussianMixture.fit`"""
 
-        if data.shape[1] >= self.min_samples:
-            super().batch(data, responsibilities)
+        assert data.ndim == 2, f"Data should be 2D is {data.ndim}"
+
+        if len(data.shape) != 2:
+            raise ValueError("Wrong input dimensions (at least 2D)")
+
+        if data.shape[0] == 0:
+            logger.info("Empty data set")
+            return
+
+        n_samples = data.shape[0]
+        if n_samples >= self.min_samples:
+            logger.info("Eager learning on %d>%d samples", n_samples, self.min_samples)
+            super().fit(data, y)
         else:
-            self._weights[data.shape[1] :] = 0.0
-            self._weights[0 : data.shape[1]] = 1.0 / data.shape[1]
+
+            if self.online_learning:
+                raise NotImplementedError("Online learning not supported yet")
+
+            logger.info("Lazy batch learning on %d<%d samples", n_samples, self.min_samples)
+
+            self._weights[n_samples :] = 0.0
+            self._weights[0 : n_samples] = 1.0 / n_samples
 
             for feature in self.features:
                 feature.model.sync(self._weights, self._sufficient_statistics[0])
                 feature.model.lazy_init(data[:, feature.columns])
 
-    def online(
-        self, data: np.ndarray, responsibilities: np.ndarray, rate: float,
-    ):
-        # FIXME implementation missing. Requires a flag that indicates
-        # that enough data has been observed
-
-        raise NotImplementedError("Online learning not supported yet")
-        # super().online(data, responsibilities, rate)
-
+        return self
