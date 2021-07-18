@@ -1,6 +1,13 @@
 kuberspatiotemporal package
 ===========================
 
+Subpackages
+-----------
+
+.. toctree::
+
+   kuberspatiotemporal.tools
+
 Submodules
 ----------
 
@@ -8,9 +15,10 @@ Submodules
 
    kuberspatiotemporal.base
    kuberspatiotemporal.compound
+   kuberspatiotemporal.cumulative
    kuberspatiotemporal.kuber
+   kuberspatiotemporal.lazy_compound
    kuberspatiotemporal.spatial
-   kuberspatiotemporal.tools
 
 Module contents
 ---------------
