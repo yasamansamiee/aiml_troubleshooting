@@ -74,7 +74,7 @@ class KuberModel(BaseModel):
             )
 
         self.__pmf[:,:] = 0.0
-        self.__pmf[0 : data.shape[0], data.reshape(-1).astype(int)] = 1.0
+        self.__pmf[range(data.shape[0]), data.reshape(-1).astype(int)] = 1.0
 
     def reset(self, fancy_index: np.ndarray):
 
