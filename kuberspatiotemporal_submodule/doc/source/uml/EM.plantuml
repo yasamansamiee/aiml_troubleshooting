@@ -1,0 +1,94 @@
+@startuml
+|#AntiqueWhite|BaseModel|
+start
+:__expect(X);
+->         abstract method;
+|#AntiqueWhite|CompoundModel|
+:expect(X);
+-> share weights;
+split
+|Children|
+:sync(weights);
+split again
+:sync(weights);
+end split
+|#AntiqueWhite|CompoundModel|
+:delegate;
+split
+|Children|
+:expect(X);
+:compute probs. for model type;
+split again
+:expect(X);
+:compute probs. for model type;
+end split
+|#AntiqueWhite|CompoundModel|
+:multiply expectations ("AND");
+|BaseModel|
+:compute responsibilities;
+:update statistics S0;
+-> abstract method;
+|#AntiqueWhite|CompoundModel|
+:batch/online(X, Responsibilities);
+-> share sufficient statistics;
+split
+|Children|
+:sync(s0);
+split again
+:sync(s0);
+end split
+|#AntiqueWhite|CompoundModel|
+:delegate;
+split
+|Children|
+:batch/online(X, Responsibilities);
+:update statistics;
+split again
+:batch/online(X,, Responsibilities);
+:update statistics;
+end split
+|BaseModel|
+:__maximize(X);
+:Update weights;
+-> abstract method;
+
+|#AntiqueWhite|CompoundModel|
+:maximize(X);
+
+|#AntiqueWhite|CompoundModel|
+:delegate;
+split
+|Children|
+:maximize(X);
+:Update model parameters;
+split again
+:maximize(X);
+:Update model parameters;
+end split
+|BaseModel|
+:;
+|#AntiqueWhite|CompoundModel|
+-> abstract method;
+:find_degenerated();
+split
+|Children|
+:find_degenerated();
+split again
+:find_degenerated();
+end split
+|#AntiqueWhite|CompoundModel|
+:Join degenerated (OR);
+|BaseModel|
+:__reset(degenerated);
+|#AntiqueWhite|CompoundModel|
+-> abstract method;
+:reset();
+split
+|Children|
+:reset();
+split again
+:reset;
+end split
+|BaseModel|
+stop
+@enduml

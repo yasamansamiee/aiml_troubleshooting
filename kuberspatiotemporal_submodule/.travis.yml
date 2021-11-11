@@ -1,0 +1,46 @@
+language: minimal
+
+services:
+  - docker
+
+env:
+  global:
+    - TRAVIS_REPO_SLUG=acceptto-corp/kuberspatiotemporal
+    - IMAGE_NAME=064061306967.dkr.ecr.us-west-2.amazonaws.com/kuberspatiotemporal
+    - AWS_DEFAULT_REGION=us-west-2
+    # AWS KEY ID
+    - secure: wxdVZm23aQFxeTNSPOieeJVkabrrzj7XrgKpjGfJXak6cTeYY5YUXF82itiU+0rSLmdQB2FA4CQccTSUmytvX+zQRbhIKJHl51Bs3ruMaus3WJGUPV3WZe3u11gIeqkDq5r6KkZdADFPoBeMqmAmVCfrn2v8ifc36rB+bWKYEbZCWZiQxcfztA/NxfRdfVs4xMHrcSR9RKlJaCELPVUOT1VeeQn6ih+GpIlK9jLdJRfKqyy6K6ZTke1DpPKVFQ78YOMBkc3PLDqNUgyhmgPDfCSxx1bFbt0tZ9LFi1hDjfLzLcJUoMtc+JIGrShoY+/iVl7TXbYrK1eJ91VEHu6UAv4wGHIqiWWF9zghHVfCoLWc60NjekfDbyOhJUFENZhq8jPAEgCeDa9zgnTjvq9HnPvTB+2gm9y+wY3+3A6ZdJKUp+XjEzmLbH+4JAommdneN1NuW51YeJPqK77dvEZ+I1ymrl6rDgWtcrh5/E8F+AGbIlctzS/IiZpTIxeH+FTHZQ1lJ8jUFd+52cH0klXeCLocZ/La6sWRW5zMrAJUJSiz5GqLGgDDICzxtx6LMj5DfYu/6ALcAA+8hDieXB68AvGYdXpm3a04YKG80u0wc3bX9tWifreSBqbq7YH8AeBNz+KLYbHFxBG+FaYMwd9u895ZVEIbBtU6sROmcvZuhNk=
+    # AWS KEY SECRET
+    - secure: YT+uniJrERYDKYQz9aMRtwA4V9SPBnl3vEJHsE/cYfg0qoLgY66mbtOZlajSoqxnfeYgwEj0Kgy8shjw+Fh7hfV5i4tjASnF3m/PXpesT9Dhj2JslMi4lxIHHn6vc5/Pq5d9qxeK9OT6nf9RGw14bcpviHi+WaArlMWSM87wRfkd7O2dJKXZ42epIP6tjUKO07GBvR+TJZ05zEd5+sunMNLf3sxZVTVbYB2b+CnMRwCdLmoQqyhlHjJ0jjASWfBIUsQZVebBPL6wIrwacC7quKmN53aQgJetlmndchjrh4/nXOenrVANFYiNoDjW3w86upy6tEr2IZhtyKu2+Z8RcDC7JGovnPWYSB7wvr0BSQBtbn1geoLDq77C2i478i0H9XYnbzPPm3BoJ2q8YT8o7Z3YNsdZtyHV51+KmFDggTWEyqZ5OirTiYjYrUVo+IhKzt52Z4xMqpiszjf3HELHe40Ofqj/X7/B+UOQ12miLYGDRGofz7EtDAgcQ2fsubFgdDcT5EhKn7x6Hgs/MaNN8B3R5V4TD9Tsqqg7DZVruNEWznX3mIFN8mqeRCumITGcSifoYkk2JkqagFBs5dHCdbEdqWoLDV62eJ4Qinkq+qsOsaB3YlCpSpbdH4+BbUQCAR+k28vzRcIKzZtOteVEG+329/oBT1pTJDK/t+/oVq4=
+    # GH_USER_EMAIL
+    - secure: CoumiQ/H+Ss50R2B39q22aX6kJoMPlNQrITDEsJk5LTo+VqVRThVEVSqM+qyfCvYappaeBSHyY66PHBC7oa4DRQbXSzrR+sJuKdByac5SAGCEv4I80Bk/WS9s3MqQy00nxFlgTwhoDRo8hCo2MBfB3iB4rWMwuo/zJrLZvs8QNb7sA7zB/E3U75pA5PtxbUov3T+YX/qXQpBZuMk27g2Oe8aOWYDZlJ3U36yA/qvhoYIbiGGZHwxeZFI8UishPHKp/GNoKmPWdJc2QgYKCidrILS8Qi5pOtFS/+Tf42xzn/F6Jvbug6iVaGLWcllvefOl28HohADpQDyOJbwJ6a8dImidvSJp7Pn8Zm+I/qlOMYOlzTcG8l0yWAalhc78VTi8I6AsJAdQxQ8U7eFNqN6itAgWgtvM3JMAg9wG4aWhwyvHOjHRfVdtnv5AEVAzzdfepoXEqEoANX1SRj6lSPGLLH6pOmD0hr4iuCg8pa0mn67uJDm2oRGrSIlcTHJbpjt8YTCLmjpS3jgcTsD3kJfNFYmCi9GHLl6Nw04P1x/4O+Avw1SedLRku6WmhsqhL7fmuaE4b7lNZI5fbMt9cToBHhyxJE7Tr5fkrTvXP5iIp2jicWGiFK5gGHrsoLkCJIP+8NhaOoVwRBLtfy9R+u8UZ4J1aMzDMGXf5/UgvQsQbo=
+    # GH_USER_NAME
+    - secure: RTk1d+wWgj4gp6vb8hcDOlZYRU7FvwKwb8tGuKJcuq+dvzle9ORZeemB7RwtEOf3GYggpsgOnTolEGg1c8oDTqI14tLfnnF/mPbWj7LmtDplm7isouCyUQkOO3bljuCbj4ZfzzL3UYPhpeJxQqj1RELxhixiIzfmMjX8ZsgUnQ1qZlKviUjaldrOQTIXFoxxzcpsYpf+sksQhqk6dk1kMdaqCMXkTPuVKXkl41ll6oe77tREUwDZsSgoHICaBwYKkZZBO2cV6GvlNZsUS/t111modRH8q3A2FDuxvSYfrwUV+UR5bEwbSsQjX/JCXUc6e06STo5kWWLSdvbesXKFve0APy0dd8ppOYk0NJsI6qe1vHxMlIrC8nd3oXDkskhJLkFrkngf/V2JkltvenhX5fwE2D91n3tIU5tvfa7oGOVYOuLmGO4krCCiGmBJ6DKzYqJZyJphv1aeYi00HjzL4Lzg0CN8opsW107fDXh1VJ+GSUysP6Hl/quc+15/Mkynt9kbEIU2zLvhhpqv2DIF0azoagd3DscVqHT4Q0gfdRHfuTAWO2DPRBt7fxp6Uly2436UQPSa3MGmVFS2UmCaVBQ2QobkmApJvmfjH0+kWkG2gfIbcoSG8+dThNfst0C3Gr87RRTxvrPTfrfqhSZGysIZ+lWgSAPed1hiLYr8MEc=
+    # GH KEY > encrypted_73348c0d1a75_key
+    - secure: ifCSSpi9h/ls0gaOYOuKj+wA4HkTOaU0WZ9okYh9uPbfSKCmR6edBfdtWRvM7EfXhsof+VuSC6BsmWkvwA3Uc+RVnY0DPbeJt8ZYm5x5zj/N/r+xSG1+b8PmPGCbQSdd22SW7zQKdj5uks1kC5YKMZ5xU9/vz7kz0iHuGGlzAMwdlGVWl7VJeQx1nGCckGLfkTbmwXuyRlGWyQyXJFsRFs9G2qhpm777hxXJFPEt7LgNiK/NwdcY214IQ4zev2XbyLw12QLehQ9hfPFgWDo51J7mJ4Ingdq1hCpWkrCGhYuKvq125Jocte1K/CWK+WM6YNLA4qtUDWNNqIJh6YH7z/4+mzDudzkeOZSMCvDw3rOAs/JSd893A2RIxJdh71Qx3OnmW3Q3gy+xUTgTdFS+qTHfEBKKB/x6UO6n3+N/TwVbKx1fVfpLE5AJXt4MRTKfjmMZIbT5wtekUUOsEoT8pggt1ez+Vcn5RpJPvOb7hm0aRABMR4yGE/+Ih+4ObCQG0yUj8V60AYmkvd9JB8ZzcgNhYkCRbvzIjDIBNbun1QUx/v7OX8wZ5mUxU84vzHZbXHKZDldpgi2+5VCStKYEJjuC8Xw2nsZtnxI3zbLtHmsxySqJHY6tqqhxzOxaZvo91Bv0NdkFy8L+1fBToefgCbtFtjb59CsxHggyPLbsZ2E=
+    # GH KEY > encrypted_73348c0d1a75_iv
+    - secure: wBvFjWr5oTY3LP+H+u8g+1OpPZyUhBsRJa/V3uvcTe7sf6eqHGYTkQcsQI09E5h23GQe5z3ffjO9adV0PEt185fN8LjvKxL0FRv1Fqht/XN9EuafY7jKubR/cXwHagVDpf7usNT2xiadju3JsGW4Cfb0nrq5pJQjk1pUvfhru//yTCiF2yrlJW+yT42E/7UEOiwczuLRbMnW5ehY2vRS7cuQNpjLAI0+o783n9x8ubSEtAM3WuK4HwSe8sO0g02WoTeDLu81xTxWUTwymZaiwm7M//T2aZvEkjxDG/nLf3Ja9SRJtZY1t0Xz+BgcLh0Bju2o21mg62/F6/Dp5t09ZFNOxPoBEuMojfnMIBWSVH/ddZZHppTsQbr2yaW8eAPDsSqhQEjhYjJe1Ze2+w+K1jUEE4kRhoE9c004L7+i0hZY+PASoanU15KR7uQZuCtrv07VeKnXOG18V4kof1flAx1pzlWo6NQO8hdfLt97KifsbL0xMfQ7GF6qqWIl54mmPzap7FbzhNiaWL9NLnHBvg/8emF8/hmK6cVjRmKmR1bNy55Yb4gFFl4XSehaTajfuOCN7WgW9g60ptHm4diK1czzZSC/3RMLbGsaf+iBS6Wjn2MNH1XaRAW+x3Cx+jOosKpfQEwhRsEnpJln/UHv1UHQOFMnJGSyNVs9kfZk5GI= 
+
+branches:
+  only:
+    - master
+
+install:
+  - pip install --user awscli
+  - eval $(aws ecr get-login --no-include-email)
+
+script:
+  - docker build --pull --cache-from "$IMAGE_NAME" --tag "$IMAGE_NAME" .
+  # - docker build --cache-from "$IMAGE_NAME-test" --tag "$IMAGE_NAME-test" -f Dockerfile.test .
+  # - docker run --rm 
+  #   -e TRAVIS_REPO_SLUG=$TRAVIS_REPO_SLUG 
+  #   -e TRAVIS_BUILD_NUMBER=$TRAVIS_BUILD_NUMBER 
+  #   -e encrypted_73348c0d1a75_key=$encrypted_73348c0d1a75_key 
+  #   -e encrypted_73348c0d1a75_iv=$encrypted_73348c0d1a75_iv 
+  #   -e GH_USER_NAME=$GH_USER_NAME 
+  #   -e GH_USER_EMAIL=$GH_USER_EMAIL 
+  #   "$IMAGE_NAME-test" poetry run ./run_coverage_update_github.sh
+
+deploy:
+  provider: script
+  script: docker push $IMAGE_NAME

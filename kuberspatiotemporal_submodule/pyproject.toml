@@ -1,0 +1,70 @@
+[tool.poetry]
+name = "kuberspatiotemporal"
+version = "0.1.3"
+description = "A package to experiment with probabilistic, heterogeneous mixture models for risk analysis."
+authors = ["Stefan <stefan.ulbrich@acceptto.com>"]
+readme = "README.md"
+# repository = "git@github.com:acceptto-corp/kuberspatiotemporal.git"
+classifiers = [
+   "Private :: Do Not Upload", # https://github.com/sdispater/poetry/issues/302#issuecomment-467805206
+]
+packages = [
+   { include = "kuberspatiotemporal", from = "src"}
+]
+build = 'build.py' # https://github.com/python-poetry/poetry/issues/11
+
+
+[tool.poetry.dependencies]
+python = "~3.7"
+scikit-learn = "^0.22.2"
+numpy = "^1.18.1"
+attrs = "^19.3.0"
+python-minifier = "^2.3.0"
+
+[tool.poetry.dev-dependencies]
+pandas = "^1.1.0"
+sphinx = "^2.4.4"
+ipykernel = "^5.1.4"
+pylint = "^2.6.0"
+pylint-exit = "^1.2.0"
+autopep8 = "^1.5"
+rope = "^0.16.0"
+pytest = "^6.2.1"
+pyenchant = "^3.2.0"
+doc8 = "^0.8.0"
+nbsphinx = "^0.5.1"
+scipy = "1.3.2"
+recommonmark = "^0.6.0"
+matplotlib = "^3.2.0"
+seaborn = "^0.10.0"
+black = "^19.10b0"
+nb_black = "^1.0.7"
+ipyleaflet = "^0.12.4"
+coverage = "^5.3.1"
+coverage-badge = "^1.0.1"
+dill = "^0.3.3"
+
+[tool.black]
+line-length = 100
+target-version = ['py37']
+include = '\.pyi?$'
+exclude = '''
+
+(
+  /(
+      \.eggs         # exclude a few common directories in the
+    | \.git          # root of the project
+    | \.mypy_cache
+    | \.tox
+    | _build
+    | buck-out
+    | build
+    | dist
+  )/
+)
+'''
+
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"
+
